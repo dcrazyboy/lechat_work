@@ -1,0 +1,62 @@
+# Règles pour 2 FAI
+
+flush ruleset
+
+table inet xen_filter {
+    chain input {
+        type filter hook input priority filter; 
+        policy drop;
+        # Autoriser le trafic loopback
+        iifname "lo" accept
+        # Autoriser SSH/SCP pour toutes les VMs sur xenbr0 + dom0 (zone interne)
+        iifname { "xenbr0", "enp6s0" } tcp dport 22 accept
+        # Autoriser WireGuard (UDP 51820) pour VM1 (xenbr1)
+        iifname "xenbr1" udp dport 51820 accept
+        # Autoriser le trafic UDP sur le port 53
+        udp dport 53 accept
+        # Autoriser ICMP (ping)
+        icmp type echo-request accept
+        # Autoriser le trafic établi/relatif
+        ct state established,related accept
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+        # --- ZONE INTERNE (xenbr0/enp6s0) ---
+        # Autoriser tout le trafic entre xenbr0 et enp6s0 (LAN privé)
+        iifname "xenbr0" oifname "enp6s0" accept
+        iifname "enp6s0" oifname "xenbr0" accept
+        # --- ZONE MANAGEMENT (xenbr1) ---
+        # Autoriser WireGuard (UDP 51820) entre VM1 et l'extérieur (via enp9s0)
+        iifname "xenbr1" oifname "enp9s0" udp dport 51820 accept
+        iifname "enp9s0" oifname "xenbr1" udp sport 51820 accept
+        # Autoriser SSH/SCP depuis xenbr1 vers xenbr2 et xenbr3
+        iifname "xenbr1" oifname { "xenbr2", "xenbr3" } tcp dport 22 accept
+        iifname { "xenbr2", "xenbr3" } oifname "xenbr1" ct state established,related accept
+        # --- ZONE PUBLIC (xenbr2) ---
+        # Autoriser HTTP/HTTPS depuis l'extérieur (enp9s0) vers xenbr2
+        iifname "enp9s0" oifname "xenbr2" tcp dport { 80, 443 } accept
+        # Autoriser l'accès Internet pour xenbr2 (HTTP/HTTPS)
+        iifname "xenbr2" oifname "enp9s0" ct state established,related accept
+        iifname "xenbr2" oifname "enp9s0" tcp dport { 80, 443 } accept
+        # --- ZONE ISOLÉE (xenbr3) ---
+        # Autoriser PostgreSQL entre VM2 ↔ VM4 et VM3 ↔ VM5 sur xenbr3
+        iifname "xenbr2" ip daddr 10.0.30.40 tcp dport 5432 accept
+        iifname "xenbr3" ip saddr 10.0.30.40 tcp sport 5432 accept
+        iifname "xenbr2" ip daddr 10.0.30.50 tcp dport 5432 accept
+        iifname "xenbr3" ip saddr 10.0.30.50 tcp sport 5432 accept
+        # --- ACCÈS INTERNET POUR LES VMs (HTTP/HTTPS/MAJ) ---
+        # Autoriser les mises à jour (HTTP/HTTPS) pour toutes les VMs
+        iifname { "xenbr0", "xenbr1", "xenbr2", "xenbr3" } oifname "enp9s0" tcp dport { 80, 443 } accept
+        iifname "enp9s0" oifname { "xenbr0", "xenbr1", "xenbr2", "xenbr3" } ct state established,related accept
+    }
+
+    # Chaîne pour le trafic sortant
+    chain output {
+        type filter hook output priority 0; 
+        policy accept;
+        udp dport 53 accept
+    }
+}
+
+# Pas de NAT pour 2 FAI

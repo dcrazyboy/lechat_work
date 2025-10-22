@@ -1,0 +1,93 @@
+dcrazyboy@pc-pro:/data/projets/stable-diffusion-webui> ./webui.sh --xformers --medvram --opt-sdp-attention --disable-nan-check
+
+################################################################
+Install script for stable-diffusion + Web UI
+Tested on Debian 11 (Bullseye), Fedora 34+ and openSUSE Leap 15.4 or newer.
+################################################################
+
+################################################################
+Running on dcrazyboy user
+################################################################
+
+################################################################
+Repo already cloned, using it as install directory
+################################################################
+
+################################################################
+Create and activate python venv
+################################################################
+
+################################################################
+Launching launch.py...
+################################################################
+glibc version is 2.42
+Cannot locate TCMalloc. Do you have tcmalloc or google-perftool installed on your system? (improves CPU memory usage)
+Python 3.11.13 (main, Jun 09 2025, 17:26:24) [GCC]
+Version: v1.10.1
+Commit hash: 82a973c04367123ae98bd9abdf80d9eda9b910e2
+Installing clip
+Cloning assets into /data/projets/stable-diffusion-webui/repositories/stable-diffusion-webui-assets...
+Clonage dans '/data/projets/stable-diffusion-webui/repositories/stable-diffusion-webui-assets'...
+remote: Enumerating objects: 20, done.
+remote: Counting objects: 100% (20/20), done.
+remote: Compressing objects: 100% (18/18), done.
+remote: Total 20 (delta 0), reused 20 (delta 0), pack-reused 0 (from 0)
+Réception d'objets: 100% (20/20), 132.70 Kio | 2.14 Mio/s, fait.
+Cloning Stable Diffusion into /data/projets/stable-diffusion-webui/repositories/stable-diffusion-stability-ai...
+Clonage dans '/data/projets/stable-diffusion-webui/repositories/stable-diffusion-stability-ai'...
+remote: Enumerating objects: 586, done.
+remote: Counting objects: 100% (6/6), done.
+remote: Compressing objects: 100% (6/6), done.
+remote: Total 586 (delta 1), reused 0 (delta 0), pack-reused 580 (from 4)
+Réception d'objets: 100% (586/586), 73.45 Mio | 37.08 Mio/s, fait.
+Résolution des deltas: 100% (284/284), fait.
+Cloning Stable Diffusion XL into /data/projets/stable-diffusion-webui/repositories/generative-models...
+Clonage dans '/data/projets/stable-diffusion-webui/repositories/generative-models'...
+remote: Enumerating objects: 1108, done.
+remote: Counting objects: 100% (532/532), done.
+remote: Compressing objects: 100% (166/166), done.
+remote: Total 1108 (delta 413), reused 366 (delta 366), pack-reused 576 (from 3)
+Réception d'objets: 100% (1108/1108), 86.65 Mio | 38.93 Mio/s, fait.
+Résolution des deltas: 100% (578/578), fait.
+Cloning K-diffusion into /data/projets/stable-diffusion-webui/repositories/k-diffusion...
+Clonage dans '/data/projets/stable-diffusion-webui/repositories/k-diffusion'...
+remote: Enumerating objects: 1350, done.
+remote: Counting objects: 100% (651/651), done.
+remote: Compressing objects: 100% (87/87), done.
+remote: Total 1350 (delta 608), reused 566 (delta 564), pack-reused 699 (from 1)
+Réception d'objets: 100% (1350/1350), 239.59 Kio | 3.69 Mio/s, fait.
+Résolution des deltas: 100% (948/948), fait.
+Cloning BLIP into /data/projets/stable-diffusion-webui/repositories/BLIP...
+Clonage dans '/data/projets/stable-diffusion-webui/repositories/BLIP'...
+remote: Enumerating objects: 277, done.
+remote: Counting objects: 100% (183/183), done.
+remote: Compressing objects: 100% (46/46), done.
+remote: Total 277 (delta 145), reused 137 (delta 137), pack-reused 94 (from 1)
+Réception d'objets: 100% (277/277), 7.04 Mio | 17.49 Mio/s, fait.
+Résolution des deltas: 100% (152/152), fait.
+Installing requirements
+Launching Web UI with arguments: --xformers --medvram --opt-sdp-attention --disable-nan-check
+/data/projets/stable-diffusion-webui/venv/lib64/python3.11/site-packages/timm/models/layers/__init__.py:48: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Downloading: "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors" to /data/projets/stable-diffusion-webui/models/Stable-diffusion/v1-5-pruned-emaonly.safetensors
+
+100%|███████████████████████████████████████████████████████████████████████| 3.97G/3.97G [00:37<00:00, 113MB/s]
+Calculating sha256 for /data/projets/stable-diffusion-webui/models/Stable-diffusion/v1-5-pruned-emaonly.safetensors: Running on local URL:  http://127.0.0.1:7860
+
+To create a public link, set `share=True` in `launch()`.
+Startup time: 162.8s (prepare environment: 93.4s, import torch: 2.5s, import gradio: 0.5s, setup paths: 2.6s, initialize shared: 0.2s, other imports: 0.2s, list SD models: 62.4s, load scripts: 0.3s, create ui: 0.3s, gradio launch: 0.4s).
+6ce0161689b3853acaa03779ec93eafe75a02f4ced659bee03f50797806fa2fa
+Loading weights [6ce0161689] from /data/projets/stable-diffusion-webui/models/Stable-diffusion/v1-5-pruned-emaonly.safetensors
+Creating model from config: /data/projets/stable-diffusion-webui/configs/v1-inference.yaml
+/data/projets/stable-diffusion-webui/venv/lib64/python3.11/site-packages/huggingface_hub/file_download.py:945: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+vocab.json: 961kB [00:00, 24.1MB/s]
+/data/projets/stable-diffusion-webui/venv/lib64/python3.11/site-packages/huggingface_hub/file_download.py:945: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+merges.txt: 525kB [00:00, 40.8MB/s]
+special_tokens_map.json: 100%|█████████████████████████████████████████████████| 389/389 [00:00<00:00, 1.36MB/s]
+tokenizer_config.json: 100%|███████████████████████████████████████████████████| 905/905 [00:00<00:00, 7.99MB/s]
+config.json: 4.52kB [00:00, 26.8MB/s]
+Applying attention optimization: xformers... done.
+Model loaded in 13.2s (calculate hash: 2.9s, create model: 9.1s, apply weights to model: 0.8s, apply half(): 0.2s, calculate empty prompt: 0.1s).
+

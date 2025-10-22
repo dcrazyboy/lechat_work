@@ -1,0 +1,62 @@
+Installation de Stable Diffusion sur openSUSE Tumbleweed
+
+Pour installer Stable Diffusion sur openSUSE Tumbleweed, il faut suivre plusieurs étapes, notamment l'installation des dépendances, la configuration de l'environnement Python, et le clonage du dépôt GitHub correspondant. Voici un guide détaillé basé sur les informations disponibles.
+Étapes d'installation
+1. Mise à jour du système
+
+Ouvrez un terminal et exécutez :
+
+sudo zypper refresh
+sudo zypper dup
+
+Cela garantit que votre système est à jour avec les derniers paquets de Tumbleweed.
+2. Installation des dépendances nécessaires
+
+Installez les outils et bibliothèques requis pour faire fonctionner Stable Diffusion :
+
+sudo zypper install git wget curl python311 python311-pip python311-devel gcc gcc-c++ make cmake nodejs npm libffi-devel libopenssl-devel readline-devel sqlite3-devel xz-devel libbz2-devel tk-devel libexpat-devel
+
+sudo zypper install git wget curl python311 python311-pip python311-devel gcc gcc-c++ make cmake nodejs npm 
+libffi-devel libopenssl-devel readline-devel sqlite3-devel xz-devel libbz2-devel tk-devel libexpat-devel
+
+3. Clonage du dépôt de Stable Diffusion
+
+Dans votre répertoire de travail, clonez le dépôt officiel :
+
+git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
+cd stable-diffusion-webui
+
+4. Création d’un environnement virtuel Python
+
+Créez et activez un environnement virtuel avec Python 3.11 :
+
+python3.11 -m venv venv
+source venv/bin/activate
+
+5. Installation des paquets Python
+
+Mettez à jour pip et installez les paquets nécessaires, notamment torch, compatible avec votre GPU (si disponible) :
+
+pip install --upgrade pip wheel
+pip install torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install xformers==0.0.28.post3 --no-cache-dir
+
+Remarque : La version de torch doit être compatible avec votre GPU et CUDA. Si vous utilisez une autre version ou pas de GPU, adaptez la version de torch en conséquence.
+6. Lancement de l'interface Web
+
+Une fois l’installation terminée, lancez l’interface :
+
+./webui.sh
+
+Vous pourrez accéder à l’interface via http://127.0.0.1:7860/.
+Conseils supplémentaires
+
+    Si vous utilisez une GPU NVIDIA, assurez que les pilotes et CUDA sont correctement installés (voir la section NVIDIA dans le contexte).
+    Pour une meilleure compatibilité, vérifiez la version de torch recommandée pour votre GPU.
+    Si vous souhaitez automatiser ou personnaliser l’installation, vous pouvez créer un script bash avec ces commandes.
+
+Résumé
+
+L’installation de Stable Diffusion sur openSUSE Tumbleweed nécessite la mise à jour du système, l’installation des dépendances, le clonage du dépôt, la création d’un environnement virtuel Python, puis l’installation des paquets Python spécifiques. Après cela, vous pouvez lancer l’interface web pour générer des images.
+
+Des informations manquent sur la configuration spécifique de votre GPU ou de votre environnement Python, donc adaptez les versions de torch si nécessaire.

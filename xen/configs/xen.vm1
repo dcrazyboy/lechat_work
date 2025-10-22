@@ -1,0 +1,9 @@
+/usr/bin/qemu-system-x86_64 {
+  #include <abstractions/base>
+  #include <abstractions/xen>
+
+  /dev/net/tun rw,
+  /etc/xen/vm1-wireguard.cfg r,
+  network inet tcp,
+  network inet udp,
+}

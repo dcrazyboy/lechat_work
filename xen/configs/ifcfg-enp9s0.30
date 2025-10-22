@@ -1,0 +1,5 @@
+BOOTPROTO='none'
+STARTMODE='auto'
+ETHERDEVICE='enp9s0'
+VLAN_ID='30'
+ZONE=public

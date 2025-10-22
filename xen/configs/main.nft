@@ -1,0 +1,4 @@
+#!/usr/sbin/nft -f
+
+# Inclure les règles spécifiques à la configuration active
+include "/etc/nftables/rules/rules.d/myrules.nft"

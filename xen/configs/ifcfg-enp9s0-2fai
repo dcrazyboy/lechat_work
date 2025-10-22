@@ -1,0 +1,5 @@
+GATEWAY='192.168.0.1'
+IPADDR='192.168.0.10/24'
+BOOTPROTO='static'
+STARTMODE='auto'
+ZONE='public'

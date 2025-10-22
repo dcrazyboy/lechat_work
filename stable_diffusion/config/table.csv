@@ -1,0 +1,4 @@
+"Modèle","Taille","Lien (Hugging Face)","Notes"
+"stabilityai/stable-diffusion-2-1","2.5 Go","Lhttps://huggingface.co/stabilityai/stable-diffusion-2-1","Bon équilibre qualité/performance."
+"runwayml/stable-diffusion-v1-5","4 Go","https://huggingface.co/runwayml/stable-diffusion-v1-5","Classique, bien supporté."
+"andite/anything-v4.0","2.5 Go","https://huggingface.co/andite/anything-v4.0","Style anime/manga."
