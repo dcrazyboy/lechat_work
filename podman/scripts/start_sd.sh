@@ -1,7 +1,4 @@
 #!/bin/bash
-# Créer le lien symbolique vers le stockage externe
-mkdir -p /mnt/podman/pod_sd/storage
-ln -sf /mnt/podman/pod_sd/storage ~/.local/share/containers/storage
 
 # Définir le fichier de configuration pour ce pod
 export CONTAINERS_STORAGE_CONF=~/.config/containers/storage-pod_sd.conf
@@ -14,6 +11,12 @@ WORK_DIR="/mnt/podman/shared_volumes/models"
 EXTERNAL_STORAGE="/mnt/podman/shared_volumes/images/stable-diffusion"
 USER_UID=$(id -u)
 USER_GID=$(id -g)
+
+# Créer le lien symbolique vers le stockage externe
+if [ ! -d "mnt/podman/pod_sd/storage" ]; then
+  mkdir -p /mnt/podman/pod_sd/storage
+fi
+ln -sf /mnt/podman/pod_sd/storage ~/.local/share/containers/storage
 
 # Vérifier si le port est déjà utilisé
 if ss -tulnp | grep -q ":${PORT} "; then
