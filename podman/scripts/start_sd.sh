@@ -51,26 +51,17 @@ fi
 echo "Création du pod $POD_NAME avec le port $PORT et l'accès au GPU"
 podman pod create --name $POD_NAME -p $PORT:7860 --device=nvidia.com/gpu=all --device=/dev/nvidia-uvm --device=/dev/nvidia-uvm-tools --device=/dev/nvidiactl --userns=keep-id
 
-# Démarrer le conteneur Stable Diffusion en mode web avec les volumes montés
+# Démarrer le conteneur Stable Diffusion en mode web
 echo "Lancement du conteneur $CONTAINER_NAME en mode web"
 podman run -dt --pod $POD_NAME --name $CONTAINER_NAME \
-  -v "$WORK_DIR:/workspace/models:Z"\
-  -v "$EXTERNAL_STORAGE:/workspace/images:Z" \
-  -u $USER_UID:$USER_GID \
-  --group-add=users \
-  --workdir /workspace \
-  docker.io/runpod/stable-diffusion:latest
-
-# Démarrer un conteneur avec un serveur web pour Stable Diffusion
-echo "Lancement du conteneur $WEB_CONTAINER_NAME pour le serveur web"
-podman run -dt --pod $POD_NAME --name $WEB_CONTAINER_NAME \
   -v "$WORK_DIR:/workspace/models:Z" \
   -v "$EXTERNAL_STORAGE:/workspace/images:Z" \
   -u $USER_UID:$USER_GID \
   --group-add=users \
   --workdir /workspace \
-  docker.io/runpod/stable-diffusion:latest \
+  docker.io/ghcr.io/automatic1111/stable-diffusion-webui:latest \
   /bin/bash -c "cd /workspace/stable-diffusion-webui && python3 launch.py --listen --xformers --enable-insecure-extension-access"
+
 
 # Attendre quelques secondes pour que Stable Diffusion démarre
 sleep 30
