@@ -44,6 +44,12 @@ EOF
             rm -rf ~/.local/share/"$element"/containers/storage
         fi
 
+        # Créer le dossier local temporaire s'il n'existe pas
+        if [ ! -d /mnt/podman/build/"$element" ]; then
+            echo "🐱 Création du dossier temporaire pour $element"
+            mkdir -p /mnt/podman/build/"$element"
+        fi
+
         # Créer le lien symbolique
         ln -s /mnt/podman/"$element"/storage ~/.local/share/"$element"/containers
         echo "🐱 Lien symbolique pour $element créé"

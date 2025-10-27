@@ -1249,6 +1249,185 @@ b. check
 ---
 ## 3. Automatisation et Scripts
 ### 3.1. Pod de Base (CUDA 12.4)
+
+**Objectif**
+Créer un pod de base avec CUDA 12.4 pour tester l’accès au GPU et servir de base à l’installation de Stable Diffusion.
+
+#### 3.1.1. Configuration du NVIDIA Container Toolkit pour Podman Rootless
+Vérification de l’Installation
+nvidia-ctk --version
+
+→ Doit afficher une version récente (ex : NVIDIA Container Toolkit CLI version 1.17.8).
+
+**Configuration du Hook NVIDIA**
+
+Créer le dossier de configuration :
+```bash
+mkdir -p ~/.config/containers/oci/hooks.d/
+```
+Ajouter le hook NVIDIA :
+```bash
+tee ~/.config/containers/oci/hooks.d/oci-nvidia-hook.json << 'EOF'
+{
+  "version": "1.0.0",
+  "hook": {
+    "createRuntime": {
+      "path": "/usr/bin/nvidia-container-cli",
+      "args": ["hook", "prestart"],
+      "env": [
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      ]
+    }
+  },
+  "when": {
+    "always": true,
+    "commands": ["create", "start"]
+  },
+  "stages": ["prestart"]
+}
+EOF
+```
+Redémarrer Podman :
+```bash
+systemctl --user restart podman.socket
+```
+
+Vérification des Périphériques NVIDIA
+```bash
+ls -l /dev/nvidia*
+```
+→ Doit afficher les périphériques /dev/nvidia0, /dev/nvidiactl, /dev/nvidia-uvm, etc.
+```bash
+ls -l /dev/nvidia*
+crw-rw-rw-+ 1 root root 195,   0 26 oct.  23:56 /dev/nvidia0
+crw-rw-rw-+ 1 root root 195, 255 26 oct.  23:56 /dev/nvidiactl
+crw-rw-rw-+ 1 root root 195, 254 26 oct.  23:56 /dev/nvidia-modeset
+crw-rw-rw-. 1 root root 510,   0 27 oct.  22:18 /dev/nvidia-uvm
+crw-rw-rw-. 1 root root 510,   1 27 oct.  22:18 /dev/nvidia-uvm-tools
+
+/dev/nvidia-caps:
+total 0
+cr--------. 1 root root 237, 1 27 oct.  22:18 nvidia-cap1
+cr--r--r--. 1 root root 237, 2 27 oct.  22:18 nvidia-cap2
+```
+
+
+#### 3.1.1.2. si /dev/nvidia-uvm a une taille null
+
+```bash
+sudo rm /dev/nvidia-uvm
+sudo mknod -m 666 /dev/nvidia-uvm c 195 254
+s -l /dev/nvidia*
+crw-rw-rw-+ 1 root root 195,   0 26 oct.  23:56 /dev/nvidia0
+crw-rw-rw-+ 1 root root 195, 255 26 oct.  23:56 /dev/nvidiactl
+crw-rw-rw-+ 1 root root 195, 254 26 oct.  23:56 /dev/nvidia-modeset
+crw-rw-rw-. 1 root root 195, 254 27 oct.  22:31 /dev/nvidia-uvm
+crw-rw-rw-. 1 root root 510,   1 27 oct.  22:18 /dev/nvidia-uvm-tools
+
+/dev/nvidia-caps:
+total 0
+cr--------. 1 root root 237, 1 27 oct.  22:18 nvidia-cap1
+cr--r--r--. 1 root root 237, 2 27 oct.  22:18 nvidia-cap2
+```
+
+
+
+
+3.1.2. Test du Pod de Base avec CUDA
+Lancement d’un Conteneur de Test
+ 
+
+```bash
+podman run --rm --gpus all nvcr.io/nvidia/pytorch:23.10-py3 nvidia-smi
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 23.10 (build 71422337)
+PyTorch Version 2.1.0a0+32f93b1
+
+Container image Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+Copyright (c) 2014-2023 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+ERROR: The NVIDIA Driver is present, but CUDA failed to initialize.  GPU functionality will not be available.
+   [[ Unknown error (error 999) ]]
+
+Mon Oct 27 21:34:22 2025       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.82.07              Driver Version: 580.82.07      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 3070 ...    Off |   00000000:01:00.0 Off |                  N/A |
+| N/A   34C    P0             24W /  130W |      15MiB /   8192MiB |      7%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+```
+puis 
+```bash
+podman run --rm --gpus all -it nvcr.io/nvidia/pytorch:23.10-py3 python3 -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 23.10 (build 71422337)
+PyTorch Version 2.1.0a0+32f93b1
+
+Container image Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+Copyright (c) 2014-2023 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+2.1.0a0+32f93b1
+True
+```
+
 - **Script de création** (`create-base-pod.sh`) :
 ```bash
 #!/bin/bash
