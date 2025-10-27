@@ -1,0 +1,18 @@
+
+{
+  "version": "1.0.0",
+  "hook": {
+    "createRuntime": {
+      "path": "/usr/bin/nvidia-container-cli",
+      "args": ["hook", "prestart"],
+      "env": [
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      ]
+    }
+  },
+  "when": {
+    "always": true,
+    "commands": ["create", "start"]
+  },
+  "stages": ["prestart"]
+}
