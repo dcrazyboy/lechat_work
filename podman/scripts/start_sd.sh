@@ -1,4 +1,8 @@
 #!/bin/bash
+# Créer le lien symbolique vers le stockage externe
+mkdir -p /mnt/podman/pod_sd/storage
+ln -sf /mnt/podman/pod_sd/storage ~/.local/share/containers/storage
+
 # Définir le fichier de configuration pour ce pod
 export CONTAINERS_STORAGE_CONF=~/.config/containers/storage-pod_sd.conf
 # Nom du pod et du conteneur
