@@ -202,13 +202,15 @@ Les images générées restent dans shared_volumes/images/sd/.
   - **Problème** : Montage automatique par `udev` dans `/run/media/dcrazyboy/my\ passport/`, ce qui peut entrer en conflit avec un autre disque similaire.
   - **Solution** : Utiliser un **point de montage fixe** (`/mnt/podman`) et désactiver le montage automatique par `udev`.
 - **Utilisation** : Exclusivement dédié à Podman.
-- **Utilisation avec NTFS** (conservé)
+- **Utilisation avec NTFS** 
   - **Avantages** :
     - Compatible avec Windows et Linux.
     - Pas besoin de reformater.
   - **Inconvénients** :
     - Performances légèrement inférieures à ext4 sous Linux.
     - Pas de support natif pour les permissions Linux (d’où l’importance des options uid, gid, dmask, fmask dans /etc/fstab).
+  - **Décision**
+    - Reformatage en ext4 
 
 voir section "Configuration Technique" -> "Préparation du Disque Externe"
 
@@ -855,17 +857,8 @@ echo "🐾 Disque démonté en sécurité !"
 
 Rendre les scripts exécutables :
 ```bash
-chmod +x mount_podman.sh umount_podman.sh
+chmod +x mount_podman.sh umount_podman.sh env_podman.sh
 ```
-9. Script de Montage (à ajouter au README.md) :
-  ```bash
-  #!/bin/bash
-  # Monter le disque (adapter UUID)
-  sudo mount /dev/disk/by-uuid/TON_UUID_DU_DISQUE /mnt/podman
-  # Créer le lien symbolique
-  ln -sf /mnt/podman_external/podman_data/storage ~/.local/share/containers/storage
-  echo "🐱 Disque monté et Podman prêt !"
-  ```
 
 ### 2.2.1 Dossiers Partagés (shared_volumes/)
 - Objectif : Centraliser les images générées, modèles et workflows pour les partager entre pods (ex : SD → ComfyUI).
@@ -903,12 +896,7 @@ Les données partagées (images, modèles) sont centralisées dans shared_volume
   ```
 - Démontage :
   Toujours arrêter les pods avant de démonter le disque.
-  Script de démontage (optionnel) :
-  ```bash
-  #!/bin/bash
-  sudo umount /mnt/podman_external
-  echo "🐾 Disque démonté en sécurité !"
-  ```
+
 ### 2.2.4 Exemple de Workflow : SD → ComfyUI
 
 Stable Diffusion génère des images dans shared_volumes/images/stable-diffusion/.
@@ -918,7 +906,7 @@ Résultat : Pas de duplication, flux de travail fluide.
 ### 2.2.5 Notes Importantes
 #### 2.2.5.1 Compatibilité :
 Testé avec Podman en mode rootless.
-Les chemins sont relatifs au point de montage (/mnt/podman_external/).
+Les chemins sont relatifs au point de montage (/mnt/podman/).
 #### 2.2.5.2 Sauvegardes :
 Sauvegardez régulièrement podman_data/ et shared_volumes/ sur un autre support.
 
@@ -929,17 +917,17 @@ Sauvegardez régulièrement podman_data/ et shared_volumes/ sur un autre support
 a. Gestion des Conteneurs
 - Nommage des conteneurs : Utilise des noms explicites pour tes conteneurs afin de les identifier facilement.
 ```
-podman run --name mon_conteneur_sd ...
+podman run --name pod_<mon_conteneur> ...
 ```
 
 - Utilisation des Pods : Si tu utilises plusieurs services liés (ex: Stable Diffusion + une base de données), regroupe-les dans un pod pour une gestion simplifiée.
 ```
-podman pod create --name mon_pod_sd
-podman run --pod mon_pod_sd --name sd_app ...
+podman pod create --name pod_<mon_pod>
+podman run --pod pod_<mon_pod> --name nom_pod>_<appli> ...
 ```
 - Persistance des données : Utilise des volumes pour les données persistantes (comme tu l’as déjà configuré avec ton disque externe).
 ```
-podman volume create sd_data
+podman volume create <nom_pod>_data
 podman run --mount type=volume,source=sd_data,target=/app/data ...
 ```
 
@@ -980,12 +968,8 @@ podman ps -a
 podman pod ps
 ```
 (Affiche les pods en cours d’exécution.)
-d. Lister les Pods (y compris ceux arrêtés)
-```
-podman pod ps -a
-```
-(Affiche tous les pods, y compris ceux qui sont arrêtés.)
-e. Voir les Ressources Utilisées par les Conteneurs
+  
+  d. Voir les Ressources Utilisées par les Conteneurs
 ```
 podman stats
 ```

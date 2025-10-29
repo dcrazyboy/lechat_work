@@ -1,9 +1,16 @@
 # Utiliser OpenSUSE Tumbleweed comme base
 FROM opensuse/tumbleweed:latest
 
+# Ajouter les clés GPG pour les dépôts NVIDIA
+RUN rpm --import https://download.nvidia.com/opensuse/tumbleweed/repodata/repomd.xml.key && \
+    rpm --import https://nvidia.github.io/libnvidia-container/gpgkey
+
+# Ajouter les dépôts NVIDIA
+RUN zypper --non-interactive addrepo https://download.nvidia.com/opensuse/tumbleweed NVIDIA && \
+    zypper --non-interactive addrepo https://nvidia.github.io/libnvidia-container/stable/rpm/x86_64 nvidia-container-toolkit
+
 # Installer les dépendances système
-RUN zypper --non-interactive refresh && \
-    zypper --non-interactive install -y \
+RUN zypper --non-interactive --no-gpg-checks install -y \
     git \
     wget \
     curl \
@@ -24,8 +31,9 @@ RUN zypper --non-interactive refresh && \
     libbz2-devel \
     tk-devel \
     libexpat-devel \
-    jitterentropy-devel \
+    libjitterentropy3 \
     Mesa-libGL1 \
+    libGLU1 \
     libX11-6 \
     libXext6 \
     libXrender1 \
@@ -52,7 +60,6 @@ RUN zypper --non-interactive refresh && \
     libxcb-xfixes0 \
     libxcb-shape0 \
     libxcb-randr0 \
-    libxcb-util1 \
     libxcb-xkb1 \
     libxcb-sync1 \
     libxshmfence1 \
@@ -65,18 +72,21 @@ RUN zypper --non-interactive refresh && \
     libXrender1 \
     libXtst6 \
     libpulse0 \
-    libasound2 \
+    alsa \
     libatk-1_0-0 \
-    libatk-bridge-2_0-0 \
-    libatspi0 \
-    libdbus-1-3 \
+    at-spi2-core \
     libgdk_pixbuf-2_0-0 \
-    libgtk-3-0 \
+    gtk3-tools \
     libpango-1_0-0 \
-    libglvnd \
-    libGLU1 \
-    libglvnd \
-    nvidia-gl-G06
+    libglvnd
+
+# Installer les paquets NVIDIA avec --auto-agree-with-licenses
+RUN zypper --non-interactive --no-gpg-checks install -y --auto-agree-with-licenses \
+    nvidia-compute-G06 \
+    nvidia-gl-G06 \
+    nvidia-driver-G06-kmp-default \
+    libnvidia-container-tools \
+    libnvidia-container1
 
 # Cloner Stable Diffusion WebUI
 RUN mkdir -p /data/projets && \
@@ -100,4 +110,3 @@ WORKDIR /data/projets/stable-diffusion-webui
 
 # Activer l'environnement virtuel et lancer Stable Diffusion avec python3.11
 CMD ["bash", "-c", "source venv/bin/activate && python3.11 launch.py --listen --xformers --enable-insecure-extension-access"]
-
