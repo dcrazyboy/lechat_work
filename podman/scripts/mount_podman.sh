@@ -61,6 +61,7 @@ EOF
         systemctl --user start podman.socket
     fi
     echo "🐱 Nombre de pods accessibles : $nb_ln | En erreur : $nb_ln_err"
+    echo "🐱 Etat podman $(systemctl --user is-active podman.socket)"
 else
     echo "❌ Erreur : Le disque n'a pas pu être monté."
     exit 1
