@@ -1,20 +1,12 @@
 #!/bin/bash
 
-# Supprimer le lien symbolique SD
-echo "Supprimer le lie symbolique SD"
-rm -rf ~/.local/share/pod_sd/containers/storage
-# Supprimer le lien symbolique ComfyUI
-echo "Supprimer le lien symbolique ComfyUI"
-rm -rf ~/.local/share/pod_comfyui/containers/storage
-# Supprimer le lien symbolique cdrage
-echo "Supprimer le lien symbolique cdrage"
-rm -rf ~/.local/share/pod_cdrage/containers/storage
-# Supprimer le lien symbolique kohya_ss
-echo "Supprimer le lien symbolique kohya_ss"
-rm -rf ~/.local/share/pod_kohya_ss/containers/storage
-# Supprimer le lien symbolique jupyter_lab
-echo "Supprimer le lien symbolique jupyter_lab"
-rm -rf ~/.local/share/pod_jupyter_lab/containers/storage
+# Monter le disque
+pod_list=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab" "build")
+for element in "${pod_list[@]}"; do
+  # Supprimer le lien symbolique jupyter_lab
+  echo "Supprimer le lien symbolique ${element}"
+  rm -rf ~/.local/share/${element}/containers/storage
+done
 # Démonter le disque
 sudo umount /mnt/podman
 echo "🐾 Disque démonté en sécurité !"

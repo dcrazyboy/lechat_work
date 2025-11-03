@@ -146,6 +146,12 @@ Partagées : Si tu veux que deux conteneurs partagent les mêmes ressources GPU,
 │       ├── overlay/      # Couches overlay
 │       └── volumes/      # Volumes nommés (optionnel)
 │
+├── pod_base/          # Lien symbolique vers ~/.local/share/containers/
+│   └── storage/         # Contient images, conteneurs et métadonnées Podman
+│       ├── libpod/      # Données internes (conteneurs, images, volumes)
+│       ├── overlay/      # Couches overlay
+│       └── volumes/      # Volumes nommés (optionnel)
+│
 ├── pod_xxx/          # Lien symbolique vers ~/.local/share/containers/
 │   └── storage/         # Contient images, conteneurs et métadonnées Podman
 │       ├── libpod/      # Données internes (conteneurs, images, volumes)
@@ -159,6 +165,21 @@ Partagées : Si tu veux que deux conteneurs partagent les mêmes ressources GPU,
 │   │   └── ...              # Autres outils
 │   ├── models/          # Modèles partagés (checkpoints, LoRAs)
 │   └── workflows/       # Workflows ComfyUI réutilisables
+│
+├── build/
+│   ├── storage/          # Répertoire pour stocker les images construites
+│   │   ├── <nom_image_1> # Résultat du build
+│   │   ├── <nom_image_2> # Résultat du build
+│   │   └── ...
+│   ├── pod_sd/           # Répertoire pour construire l'image de Stable Diffusion
+│   │   ├── Dockerfile
+│   │   └── scripts/
+│   ├── pod_base/         # Répertoire pour construire une image de base
+│   │   ├── Dockerfile
+│   │   └── scripts/
+│   └── xxx/              # Autres projets
+│       ├── Dockerfile
+│       └── scripts/
 │
 └── README.md            # Instructions pour le montage et l'utilisation```
 ```
@@ -571,7 +592,7 @@ tee ~/.config/containers/registries.conf << 'EOF'
 unqualified-search-registries = ["docker.io", "ghcr.io", "quay.io"]
 EOF
 
-# genere container.conf (optionne si problème)
+# genere container.conf (optionnel si problème)
 
 tee ~/.config/containers/containers.conf << 'EOF'
 [containers]
@@ -734,7 +755,7 @@ mkdir -p /mnt/podman/shared_volumes/workflows
 #!/bin/bash
 
 # Monter le disque
-pod_list=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab")
+#pod_list=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab" "build")
 nb_ln=0
 nb_ln_err=0
 element=0
@@ -777,12 +798,22 @@ EOF
             rm -rf ~/.local/share/"$element"/containers/storage
         fi
 
-        # Créer le lien symbolique (attention ne pas creer de bocle)
+        # Créer le dossier local temporaire s'il n'existe pas
+        if [ ! -d /mnt/podman/build/"$element" ]; then
+            echo "🐱 Création du dossier temporaire pour $element"
+            mkdir -p /mnt/podman/build/"$element"
+        fi
+
+        # Créer le lien symbolique
         ln -s /mnt/podman/"$element"/storage ~/.local/share/"$element"/containers
         echo "🐱 Lien symbolique pour $element créé"
         nb_ln=$((nb_ln+1))
     done
 
+    # check podman est actif
+    if ! $(systemctl --user is-active podman.socket); then
+        systemctl --user start podman.socket
+    fi
     echo "🐱 Nombre de pods accessibles : $nb_ln | En erreur : $nb_ln_err"
 else
     echo "❌ Erreur : Le disque n'a pas pu être monté."
@@ -823,32 +854,62 @@ echo "Configuration appliquée :"
 echo "  - CONTAINERS_STORAGE_CONF = $CONTAINERS_STORAGE_CONF"
 echo "  - TMPDIR = $TMPDIR"
 ```
+**Fichier `env_build.sh`** :
+ce fichier initialise les variable systeme pour le pod avec lequel on veut travailler
+```ini
+#!/bin/bash
 
+# Sourcer le script de montage (avec vérification)
+MOUNT_SCRIPT="~/scripts/mount_podman.sh"
+if [ -f "$MOUNT_SCRIPT" ]; then
+    echo "🐱 Vérification du montage des pods..."
+    source "$MOUNT_SCRIPT"
+else
+    echo "❌ Erreur : Le script $MOUNT_SCRIPT est introuvable."
+    exit 1
+fi
+
+# Liste des pods valides
+valid_pods=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab")
+
+# Vérifier si l'argument est valide
+if [[ ! " ${valid_pods[@]} " =~ " $1 " ]]; then
+    echo "Pod inconnu. Pods valides :"
+    printf '%s\n' "${valid_pods[@]}"
+    exit 1
+fi
+
+# Définir les variables d'environnement
+export CONTAINERS_STORAGE_CONF=~/.config/containers/storage-${1}.conf
+export TMPDIR=/mnt/podman/build/${1}
+export PODMAN_STORAGE=/mnt/podman/build/storage
+
+# Afficher la configuration
+echo "Configuration appliquée :"
+echo "  - CONTAINERS_STORAGE_CONF = $CONTAINERS_STORAGE_CONF"
+echo "  - TMPDIR = $TMPDIR"
+echo "  - PODMAN_STORAGE = $PODMAN_STORAGE"
+```
 utilisation :
 ATTENTION bien faire source et pas ./ pour que les variables soient bien initialisées dans la session
 ```bash
 source env_podman.sh <nom_du_pod>
+#ou
+source env_build.sh <nom_du_pod>
+
 ```
 
 **Fichier `umount_podman.sh`** :
 ```ini
 #!/bin/bash
 
-# Supprimer le lien symbolique SD
-echo "Supprimer le lie symbolique SD"
-rm -rf ~/.local/share/pod_sd/containers/storage
-# Supprimer le lien symbolique ComfyUI
-echo "Supprimer le lien symbolique ComfyUI"
-rm -rf ~/.local/share/pod_comfyui/containers/storage
-# Supprimer le lien symbolique cdrage
-echo "Supprimer le lien symbolique cdrage"
-rm -rf ~/.local/share/pod_cdrage/containers/storage
-# Supprimer le lien symbolique kohya_ss
-echo "Supprimer le lien symbolique kohya_ss"
-rm -rf ~/.local/share/pod_kohya_ss/containers/storage
-# Supprimer le lien symbolique jupyter_lab
-echo "Supprimer le lien symbolique jupyter_lab"
-rm -rf ~/.local/share/pod_jupyter_lab/containers/storage
+# Monter le disque
+pod_list=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab" "build")
+for element in "${pod_list[@]}"; do
+  # Supprimer le lien symbolique jupyter_lab
+  echo "Supprimer le lien symbolique ${element}"
+  rm -rf ~/.local/share/${element}/containers/storage
+done
 # Démonter le disque
 sudo umount /mnt/podman
 echo "🐾 Disque démonté en sécurité !"
@@ -857,7 +918,7 @@ echo "🐾 Disque démonté en sécurité !"
 
 Rendre les scripts exécutables :
 ```bash
-chmod +x mount_podman.sh umount_podman.sh env_podman.sh
+chmod +x mount_podman.sh umount_podman.sh env_podman.sh env_build.sh
 ```
 
 ### 2.2.1 Dossiers Partagés (shared_volumes/)
@@ -1038,7 +1099,7 @@ Voici comment automatiser la gestion des pods et conteneurs pour Stable Diffusio
 ##### 2.3.2.1.i avec interface web
 Ce script crée un pod pour SD, ajoute un conteneur avec les ressources GPU, et monte les volumes nécessaires ainsi que l'interface web.
 
-**Fichier `stest_start_jupyter_lab.sh`** :
+**Fichier `test_start_jupyter_lab.sh`** :
 ```ini
 #!/bin/bash
 # Définir le fichier de configuration pour ce pod
@@ -1463,12 +1524,6 @@ mkdir -p "\$EXTERNAL_STORAGE"
 podman pod create --name "\$POD_NAME" --device=nvidia.com/gpu=all
 podman run -it --pod "\$POD_NAME" --mount type=bind,source="\$EXTERNAL_STORAGE",destination=/app/data "\$IMAGE_NAME" /bin/
 ```
-
-- Questions :
-
-Veux-tu ajouter des dépendances communes (ex : Python, git) directement dans ce pod de base ?
-
-
 
 ### 3.2. Pods Applicatifs
 

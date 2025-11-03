@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Monter le disque
-pod_list=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab")
+#pod_list=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab" "build")
 nb_ln=0
 nb_ln_err=0
 element=0
@@ -56,6 +56,10 @@ EOF
         nb_ln=$((nb_ln+1))
     done
 
+    # check podman est actif
+    if ! $(systemctl --user is-active podman.socket); then
+        systemctl --user start podman.socket
+    fi
     echo "🐱 Nombre de pods accessibles : $nb_ln | En erreur : $nb_ln_err"
 else
     echo "❌ Erreur : Le disque n'a pas pu être monté."
