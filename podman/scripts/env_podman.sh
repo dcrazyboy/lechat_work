@@ -14,7 +14,7 @@ fi
 valid_pods=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab")
 
 # Vérifier si l'argument est valide
-if [[ ! " ${valid_pods[@]} " =~ " $1 " ]]; then
+if [[ ! " ${valid_pods[*]} " =~ " $1 " ]]; then
     echo "Pod inconnu. Pods valides :"
     printf '%s\n' "${valid_pods[@]}"
     exit 1

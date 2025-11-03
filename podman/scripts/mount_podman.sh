@@ -14,12 +14,12 @@ if mountpoint -q /mnt/podman; then
     # Montage des pods
     for element in "${pod_list[@]}"; do
         # Définir le chemin de stockage personnalisé pour ce pod
-        CONFIG_FILE=~/.config/containers/storage-$element.conf
+        CONFIG_FILE=$HOME/.config/containers/storage-$element.conf
 
         # Créer le fichier de configuration pour Podman (une seule fois)
         if [ ! -f "$CONFIG_FILE" ]; then
             echo "🐱 Création du fichier de configuration pour $element..."
-            mkdir -p ~/.config/containers/
+            mkdir -p $HOME/.config/containers/
             cat > "$CONFIG_FILE" <<EOF
 [storage]
 driver = "overlay"
@@ -28,9 +28,9 @@ runroot = "/run/user/$(id -u)"
 EOF
         fi
         # Créer le dossier local s'il n'existe pas
-        if [ ! -d ~/.local/share/"$element"/containers ]; then
+        if [ ! -d $HOME/.local/share/"$element"/containers ]; then
             echo "🐱 Création du dossier local pour $element"
-            mkdir -p ~/.local/share/"$element"/containers
+            mkdir -p $HOME/.local/share/"$element"/containers
         fi
 
         # Créer le dossier sur le disque externe s'il n'existe pas
@@ -40,8 +40,8 @@ EOF
         fi
 
         # Supprimer le lien symbolique existant s'il y en a un
-        if [ -e ~/.local/share/"$element"/containers/storage ]; then
-            rm -rf ~/.local/share/"$element"/containers/storage
+        if [ -e $HOME/.local/share/"$element"/containers/storage ]; then
+            rm -rf $HOME/.local/share/"$element"/containers/storage
         fi
 
         # Créer le dossier local temporaire s'il n'existe pas
@@ -51,7 +51,7 @@ EOF
         fi
 
         # Créer le lien symbolique
-        ln -s /mnt/podman/"$element"/storage ~/.local/share/"$element"/containers
+        ln -s /mnt/podman/"$element"/storage $HOME/.local/share/"$element"/containers
         echo "🐱 Lien symbolique pour $element créé"
         nb_ln=$((nb_ln+1))
     done
