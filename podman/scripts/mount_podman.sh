@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Monter le disque
-#pod_list=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab" "build")
+pod_list=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab" "build")
 nb_ln=0
 nb_ln_err=0
 element=0
