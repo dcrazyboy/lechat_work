@@ -1515,6 +1515,79 @@ Writing manifest to image destination
 b. check
 
 ---
+
+### 2.4 Le build
+### 2.4.1 Structuration du disque
+```
+/mnt/podman/
+/.../
+├── shared_volumes/      # Dossiers partagés entre pods (images, modèles, workflows)
+│   ├── images/          # Images générées par SD/ComfyUI/autres
+│   │   ├── stable-diffusion/  # Outputs de Stable Diffusion
+│   │   ├── comfyui/          # Outputs de ComfyUI
+│   │   └── ...              # Autres outils
+│   ├── models/          # Modèles partagés (checkpoints, LoRAs)
+│   └── workflows/       # Workflows ComfyUI réutilisables
+│
+├── build/
+│   ├── storage/          # Répertoire pour stocker les images construites
+│   │   ├── <nom_image_1> # Résultat du build
+│   │   ├── <nom_image_2> # Résultat du build
+│   │   └── ...
+│   ├── pod_sd/           # Répertoire pour construire l'image de Stable Diffusion
+│   │   ├── Dockerfile
+│   │   └── scripts/
+│   ├── pod_base/         # Répertoire pour construire une image de base
+│   │   ├── Dockerfile
+│   │   └── scripts/
+│   └── xxx/              # Autres projets
+│       ├── Dockerfile
+│       └── scripts/
+│
+└── README.md            # Instructions pour le montage et l'utilisation
+```
+### 2.4.2 Scripts utiles
+
+**env_build.sh**
+
+Ce script mest en place els acces et les variables pour l'environnement de build
+```bash
+#!/bin/bash
+
+# Sourcer le script de montage (avec vérification)
+MOUNT_SCRIPT="$HOME/scripts/mount_podman.sh"
+if [ -f "$MOUNT_SCRIPT" ]; then
+    echo "🐱 Vérification du montage des pods..."
+    source "$MOUNT_SCRIPT" "build"
+else
+    echo "❌ Erreur : Le script $MOUNT_SCRIPT est introuvable."
+    exit 1
+fi
+
+# Liste des pods valides
+valid_pods=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab")
+
+# Vérifier si l'argument est valide
+if [[ ! " ${valid_pods[*]} " =~ " $1 " ]]; then
+    echo "Pod inconnu. Pods valides :"
+    printf '%s\n' "${valid_pods[@]}"
+    exit 1
+fi
+
+# Définir les variables d'environnement
+export CONTAINERS_STORAGE_CONF=$HOME/.config/containers/storage-${1}.conf
+export TMPDIR=/mnt/podman/build/${1}
+export PODMAN_STORAGE=/mnt/podman/build/storage
+
+# Afficher la configuration
+echo "Configuration appliquée :"
+echo "  - CONTAINERS_STORAGE_CONF = $CONTAINERS_STORAGE_CONF"
+echo "  - TMPDIR = $TMPDIR"
+echo "  - PODMAN_STORAGE = $PODMAN_STORAGE"
+```
+
+### Prerequis
+
 ## 3. Automatisation et Scripts
 ### 3.1. Pod de Base (CUDA 12.4)
 
@@ -2053,240 +2126,3 @@ Par quel point veux-tu commencer ? Par exemple :
     - [✅] test
 
 
-
-![alt text](image.png)
-
-
-
-
-
-
-
-Voici comment organiser la construction de l’image directement sur ton disque externe (/mnt/podman/pod_sd/storage/) pour respecter ta structure et tes règles de stockage :
-
-1. Où construire l’image ?
-
-Construis l’image dans un dossier temporaire sur ton disque externe (par exemple /mnt/podman/build/).
-L’image finale sera stockée dans /mnt/podman/pod_sd/storage/ grâce à la variable CONTAINERS_STORAGE_CONF.
-
-
-2. Étapes détaillées
-A. Créer un dossier de construction sur le disque externe
-mkdir -p /mnt/podman/build/stable-diffusion-webui
-cd /mnt/podman/build/stable-diffusion-webui
-B. Cloner le dépôt officiel dans ce dossier
-git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git .
-C. Créer le Dockerfile
-Crée un fichier Dockerfile dans /mnt/podman/build/stable-diffusion-webui avec ce contenu :
-FROM python:3.10-slim
-
-WORKDIR /workspace/stable-diffusion-webui
-
-RUN apt-get update && apt-get install -y \
-    git \
-    wget \
-    libgl1-mesa-glx \
-    libglib2.0-0
-
-RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu118
-RUN pip install -r requirements.txt
-
-COPY . .
-
-CMD ["python", "launch.py", "--listen", "--xformers", "--port", "7860"]
-
-D. Définir la configuration de stockage pour Podman
-Avant de construire l’image, exporte la variable CONTAINERS_STORAGE_CONF pour que l’image soit stockée sur le disque externe :
-export CONTAINERS_STORAGE_CONF=~/.config/containers/storage-pod_sd.conf
-
-E. Construire l’image
-Depuis le dossier /mnt/podman/build/stable-diffusion-webui, exécute :
-podman build -t stable-diffusion-webui .
-
-F. Vérifier que l’image est bien stockée sur le disque externe
-ls -la /mnt/podman/pod_sd/storage/overlay/
-(Tu devrais voir les couches de l’image fraîchement construite.)
-
-3. Lancer le conteneur avec l’image locale
-Script adapté pour utiliser l’image locale :
-#!/bin/bash
-POD_NAME="pod_sd"
-CONTAINER_NAME="app_sd"
-PORT=7860
-WORK_DIR="/mnt/podman/shared_volumes/models"
-EXTERNAL_STORAGE="/mnt/podman/shared_volumes/images/stable-diffusion"
-USER_UID=$(id -u)
-USER_GID=$(id -g)
-
-# Définir le fichier de configuration pour ce pod
-export CONTAINERS_STORAGE_CONF=~/.config/containers/storage-pod_sd.conf
-
-# Vérifier que le disque externe est monté
-if ! mountpoint -q /mnt/podman; then
-    echo "❌ Erreur : /mnt/podman n'est pas monté."
-    exit 1
-fi
-
-# Supprimer le pod existant s'il existe
-if podman pod exists $POD_NAME; then
-    echo "🔄 Suppression du pod existant $POD_NAME..."
-    podman pod stop $POD_NAME 2>/dev/null || true
-    podman pod rm $POD_NAME 2>/dev/null || true
-fi
-
-# Créer le pod avec les options GPU
-echo "🐳 Création du pod $POD_NAME avec les options GPU..."
-podman pod create --name $POD_NAME -p $PORT:7860
-
-# Lancer le conteneur principal avec l'image locale
-echo "🚀 Lancement du conteneur $CONTAINER_NAME avec l'interface web..."
-podman run -dt --pod $POD_NAME --name $CONTAINER_NAME \
-  --device=nvidia.com/gpu=all \
-  --device=/dev/nvidia-uvm \
-  --device=/dev/nvidia-uvm-tools \
-  --device=/dev/nvidiactl \
-  -v "$WORK_DIR:/workspace/stable-diffusion-webui/models:Z" \
-  -v "$EXTERNAL_STORAGE:/workspace/stable-diffusion-webui/outputs:Z" \
-  -u $USER_UID:$USER_GID \
-  --group-add=users \
-  --workdir /workspace/stable-diffusion-webui \
-  --security-opt label=disable \
-  localhost/stable-diffusion-webui:latest
-
-# Vérifier que le conteneur est bien démarré
-if [ "$(podman inspect -f '{{.State.Status}}' $CONTAINER_NAME 2>/dev/null)" != "running" ]; then
-    echo "❌ Erreur : Le conteneur $CONTAINER_NAME n'est pas en cours d'exécution."
-    podman logs $CONTAINER_NAME
-    exit 1
-fi
-
-echo "✅ Succès ! Accède à Stable Diffusion via l'URL suivante : http://127.0.0.1:$PORT"
-
-4. Mise à jour du fichier podman-rules.md
-Ajoute une section dédiée à la construction des images dans ton fichier de règles :
-## 🏗️ Construction des images Podman
-
-### Emplacement de construction
-- **Dossier de construction** : `/mnt/podman/build/`
-- **Stockage des images** : `/mnt/podman/pod_sd/storage/` (via `CONTAINERS_STORAGE_CONF`).
-
-### Étapes de construction
-1. Créer un dossier de construction sur le disque externe :
-   ```bash
-   mkdir -p /mnt/podman/build/<nom_du_projet>
-
-Cloner le dépôt source dans ce dossier.
-Définir la configuration de stockage :
-export CONTAINERS_STORAGE_CONF=~/.config/containers/storage-pod_sd.conf
-
-Construire l’image avec Podman :
-podman build -t <nom_de_l_image> .
-
-
----
-
-## **5. Résumé des avantages**
-- **Tout est stocké sur le disque externe** : Construction et stockage des images.
-- **Pas de dépendance à Docker Hub** : Tu contrôles entièrement le processus.
-- **Respect de tes règles de stockage** : Les images et pods restent isolés sur le disque dédié.
-
----
-**Question** : Est-ce que tu veux que je t’aide à adapter le <followup encodedFollowup="%7B%22snippet%22%3A%22Dockerfile%20ou%20%C3%A0%20r%C3%A9soudre%20un%20probl%C3%A8me%20sp%C3%A9cifique%22%2C%22question%22%3A%22Quels%20sont%20les%20probl%C3%A8mes%20courants%20lors%20de%20la%20construction%20d'une%20image%20Podman%20pour%20Stable%20Diffusion%20et%20comment%20les%20%C3%A9viter%3F%22%2C%22id%22%3A%225b755194-249e-45aa-b9ed-44c6535d174c%22%7D" /> lors de la construction ? 😊00:41
-
-
-
-
-
-
-
-
-podman logs app_sd
-fatal: detected dubious ownership in repository at '/workspace/stable-diffusion-webui'
-To add an exception for this directory, call:
-
-	git config --global --add safe.directory /workspace/stable-diffusion-webui
-fatal: detected dubious ownership in repository at '/workspace/stable-diffusion-webui'
-To add an exception for this directory, call:
-
-	git config --global --add safe.directory /workspace/stable-diffusion-webui
-Python 3.11.13 (main, Jun 09 2025, 17:26:24) [GCC]
-Version: 1.10.1
-Commit hash: <none>
-Installing clip
-Traceback (most recent call last):
-  File "/workspace/stable-diffusion-webui/launch.py", line 48, in <module>
-    main()
-  File "/workspace/stable-diffusion-webui/launch.py", line 39, in main
-    prepare_environment()
-  File "/workspace/stable-diffusion-webui/modules/launch_utils.py", line 394, in prepare_environment
-    run_pip(f"install {clip_package}", "clip")
-  File "/workspace/stable-diffusion-webui/modules/launch_utils.py", line 144, in run_pip
-    return run(f'"{python}" -m pip {command} --prefer-binary{index_url_line}', desc=f"Installing {desc}", errdesc=f"Couldn't install {desc}", live=live)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspace/stable-diffusion-webui/modules/launch_utils.py", line 116, in run
-    raise RuntimeError("\n".join(error_bits))
-RuntimeError: Couldn't install clip.
-Command: "/opt/venv/bin/python" -m pip install https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip --prefer-binary
-Error code: 1
-stdout: Collecting https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip
-  Downloading https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip (4.3 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.3/4.3 MB 12.6 MB/s  0:00:00
-  Installing build dependencies: started
-  Installing build dependencies: finished with status 'done'
-  Getting requirements to build wheel: started
-  Getting requirements to build wheel: finished with status 'done'
-  Preparing metadata (pyproject.toml): started
-  Preparing metadata (pyproject.toml): finished with status 'done'
-Requirement already satisfied: ftfy in /opt/venv/lib64/python3.11/site-packages (from clip==1.0) (6.3.1)
-Requirement already satisfied: regex in /opt/venv/lib64/python3.11/site-packages (from clip==1.0) (2025.9.18)
-Requirement already satisfied: tqdm in /opt/venv/lib64/python3.11/site-packages (from clip==1.0) (4.67.1)
-Requirement already satisfied: torch in /opt/venv/lib64/python3.11/site-packages (from clip==1.0) (2.8.0)
-Requirement already satisfied: torchvision in /opt/venv/lib64/python3.11/site-packages (from clip==1.0) (0.23.0)
-Requirement already satisfied: wcwidth in /opt/venv/lib64/python3.11/site-packages (from ftfy->clip==1.0) (0.2.14)
-Requirement already satisfied: filelock in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (3.20.0)
-Requirement already satisfied: typing-extensions>=4.10.0 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (4.15.0)
-Requirement already satisfied: sympy>=1.13.3 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (1.14.0)
-Requirement already satisfied: networkx in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (3.5)
-Requirement already satisfied: jinja2 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (3.1.6)
-Requirement already satisfied: fsspec in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (2025.9.0)
-Requirement already satisfied: nvidia-cuda-nvrtc-cu12==12.8.93 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (12.8.93)
-Requirement already satisfied: nvidia-cuda-runtime-cu12==12.8.90 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (12.8.90)
-Requirement already satisfied: nvidia-cuda-cupti-cu12==12.8.90 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (12.8.90)
-Requirement already satisfied: nvidia-cudnn-cu12==9.10.2.21 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (9.10.2.21)
-Requirement already satisfied: nvidia-cublas-cu12==12.8.4.1 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (12.8.4.1)
-Requirement already satisfied: nvidia-cufft-cu12==11.3.3.83 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (11.3.3.83)
-Requirement already satisfied: nvidia-curand-cu12==10.3.9.90 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (10.3.9.90)
-Requirement already satisfied: nvidia-cusolver-cu12==11.7.3.90 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (11.7.3.90)
-Requirement already satisfied: nvidia-cusparse-cu12==12.5.8.93 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (12.5.8.93)
-Requirement already satisfied: nvidia-cusparselt-cu12==0.7.1 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (0.7.1)
-Requirement already satisfied: nvidia-nccl-cu12==2.27.3 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (2.27.3)
-Requirement already satisfied: nvidia-nvtx-cu12==12.8.90 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (12.8.90)
-Requirement already satisfied: nvidia-nvjitlink-cu12==12.8.93 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (12.8.93)
-Requirement already satisfied: nvidia-cufile-cu12==1.13.1.3 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (1.13.1.3)
-Requirement already satisfied: triton==3.4.0 in /opt/venv/lib64/python3.11/site-packages (from torch->clip==1.0) (3.4.0)
-Requirement already satisfied: setuptools>=40.8.0 in /opt/venv/lib64/python3.11/site-packages (from triton==3.4.0->torch->clip==1.0) (65.5.0)
-Requirement already satisfied: mpmath<1.4,>=1.1.0 in /opt/venv/lib64/python3.11/site-packages (from sympy>=1.13.3->torch->clip==1.0) (1.3.0)
-Requirement already satisfied: MarkupSafe>=2.0 in /opt/venv/lib64/python3.11/site-packages (from jinja2->torch->clip==1.0) (2.1.5)
-Requirement already satisfied: numpy in /opt/venv/lib64/python3.11/site-packages (from torchvision->clip==1.0) (1.26.4)
-Requirement already satisfied: pillow!=8.3.*,>=5.3.0 in /opt/venv/lib64/python3.11/site-packages (from torchvision->clip==1.0) (10.4.0)
-Building wheels for collected packages: clip
-  Building wheel for clip (pyproject.toml): started
-  Building wheel for clip (pyproject.toml): finished with status 'done'
-  Created wheel for clip: filename=clip-1.0-py3-none-any.whl size=1369426 sha256=3f6ffbf0d988282cc3936ca395d5d9873ad584c10b4e987277268fc6f18e7aae
-  Stored in directory: /tmp/pip-ephem-wheel-cache-9i01p8wq/wheels/ab/e4/90/fe779caec75583e76ccd1b84d607aead59cea5c7ec2e4e15f8
-Successfully built clip
-Installing collected packages: clip
-
-stderr: WARNING: The directory '/workspace/stable-diffusion-webui/.cache/pip' or its parent directory is not owned or is not writable by the current user. The cache has been disabled. Check the permissions and owner of that directory. If executing pip with sudo, you should use sudo's -H flag.
-ERROR: Could not install packages due to an OSError: [Errno 13] Permission denied: '/opt/venv/lib/python3.11/site-packages/clip'
-Check the permissions.
-
-
-podman ps -a
-CONTAINER ID  IMAGE                                    COMMAND               CREATED        STATUS                    PORTS                   NAMES
-26c195df3ad3                                                                 6 minutes ago  Up 6 minutes              0.0.0.0:7860->7860/tcp  b8fc8b024ae3-infra
-32a62685ed31  localhost/stable-diffusion-webui:latest  python launch.py ...  6 minutes ago  Exited (1) 6 minutes ago  0.0.0.0:7860->7860/tcp  app_sd
-
-
-podman inspect app_sd | grep -i "mounts"
-          "Mounts": [

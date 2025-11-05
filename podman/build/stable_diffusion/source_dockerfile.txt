@@ -1,0 +1,34 @@
+sudo zypper install git wget curl python311 python311-pip python311-devel gcc gcc-c++ make cmake nodejs npm libffi-devel libopenssl-devel readline-devel sqlite3-devel xz-devel libbz2-devel tk-devel libexpat-devel jitterentropy-devel
+```
+### Nettoyage de l'environnement (si besoin)
+```bash
+deactivate
+rm -rf venv
+```
+### récuperation de stable difusion
+```bash
+cd /data
+sudo mkdir projets
+sudo chown dcrazyboy:root /data/projets/
+cd projets
+sudo git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git /data/projets/stable-diffusion-webui
+cd stable-diffusion-webui
+```
+### Création de l'environnement virtuel
+```bash
+python3.11 -m venv venv
+source venv/bin/activate
+```
+### Installation de PyTorch xformers et dépendances
+```bash
+# mettre a niveau pip et wheel
+pip install --upgrade pip wheel
+
+# Installe PyTorch, torchvision, et torchaudio en version 2.3.0 pour CUDA 12.1
+pip install torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Installe xformers depuis la source pour éviter les conflits de version
+pip install xformers==0.0.28.post3 --no-cache-dir
+
+# Installe les dépendances restantes depuis le fichier requirements.txt
+pip install -r requirements.txt
