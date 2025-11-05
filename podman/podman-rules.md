@@ -216,7 +216,7 @@ Les images générées restent dans shared_volumes/images/sd/.
 
 ### 1.2 Configuration du Disque Externe (WD My Passport 4 To)
 - **Type de disque** : HDD (disque dur mécanique, modèle 2019).
-- **Système de fichiers** : NTFS (compatible Windows/Linux).
+- **Système de fichiers** : EXT4 (Linux).
 - **Taille** : 4 To, exclusivement dédié à Podman.
 - **UUID** : `003A24B23A24A71E`.
 - **Point de montage** : `/mnt/podman` (fixe, pour éviter les conflits avec `/run/media/`).
@@ -522,6 +522,187 @@ Voir **📝Structure Recommandée** pour la version finale
   - *Questions* :
     - Quel est le résultat de cette commande ? (Doit afficher les infos de la GTX 3070.)
     - Si ça ne marche pas, quelles erreurs obtients-tu ?
+### 1.7 Le cas SELINUX
+
+Pour Configurer SELinux avec Podman
+
+1. Vérifier l'état global de SELinux
+```bash
+sestatus
+```
+→ Vérifie que SELinux est en mode enforcing et que la politique targeted est active.
+
+1. Configurer les Booléens SELinux pour Podman
+Ces commandes autorisent Podman à gérer les ressources système nécessaires (cgroups, périphériques, etc.) :
+```bash
+sudo setsebool -P container_manage_cgroup true   # Permet à Podman de gérer les cgroups
+sudo setsebool -P container_use_devices true     # Permet l'accès aux périphériques (ex: GPU)
+```
+-P : Rend le changement persistant après un redémarrage.
+
+
+3. Appliquer le Contexte SELinux aux Fichiers
+Pour que Podman puisse lire/écrire dans /mnt/podman :
+```bash
+# Appliquer le contexte temporairement
+sudo chcon -R -t container_file_t /mnt/podman
+
+# Rendre le changement permanent
+sudo semanage fcontext -a -t container_file_t "/mnt/podman(/.*)?"
+
+# Appliquer les règles SELinux (charge les changements)
+sudo restorecon -Rv /mnt/podman
+```
+4. Vérifications
+a. Vérifier les contextes des fichiers
+```bash
+ls -Z /mnt/podman
+```
+→ Tous les fichiers doivent afficher container_file_t (ex: drwxr-xr-x. dcrazyboy dcrazyboy system_u:object_r:container_file_t:s0).
+b. Tester l'accès avec Podman
+```bash
+podman run --rm -it -v /mnt/podman/shared_volumes:/test alpine ls /test
+```
+→ Si la commande liste le contenu de /test, SELinux est bien configuré.
+c. Déboguer en cas d'erreur
+Si la commande échoue :
+```bash
+# Voir les refus d'accès récents
+sudo ausearch -m avc -ts recent
+
+# Voir les logs SELinux dans le noyau
+sudo dmesg | grep -i selinux
+
+# Alternative (si setroubleshoot est installé)
+sudo journalctl -t setroubleshoot
+```
+→ Ces commandes t'aident à identifier quel contexte ou booléen manque.
+
+5. Bonus : Désactiver SELinux Temporairement (pour tests)
+Si tu veux vérifier si SELinux est bien le problème :
+```bash
+# Désactiver SELinux (mode permissif)
+sudo setenforce 0
+
+# Réactiver SELinux (mode enforcing)
+sudo setenforce 1
+```
+→ À utiliser uniquement pour le débogage ! Ne laisse pas SELinux en mode permissif en production.
+
+6. Eventuellement créer une policy particuliere
+Si les règles par défaut ne suffisent pas, crée une politique personnalisée :
+
+```bash
+sudo audit2allow -a -M mypodman
+sudo semodule -i mypodman.pp
+```
+7. Résumé
+|Commande|Description|
+| :----- | :----- |
+|sestatus|Vérifier l'état de SELinux.|
+|chcon -t container_file_t /chemin|Changer le contexte d'un fichier.|
+|semanage fcontext -a -t container_file_t "/chemin(/.*)?"|Rendre le changement permanent.|
+|restorecon -Rv /chemin|Appliquer les règles SELinux.|
+|setsebool -P container_manage_cgroup true|Autoriser Podman à gérer les cgroups.|
+|ls -Z /chemin|Voir les contextes SE|
+
+### 1.80 le cas nvidia
+1. Configuration des Modules NVIDIA
+
+
+Vérification des modules NVIDIA chargés :
+```bash
+lsmod | grep nvidia
+```
+
+Création des fichiers /dev/nvidia* avec les bonnes permissions :
+
+Création manuelle de /dev/nvidia-uvm :
+```bash
+sudo mknod -m 666 /dev/nvidia-uvm c 195 254
+```
+
+
+
+2. Configuration des règles udev pour la persistance :
+
+
+Création des fichiers de règles udev :
+```bash
+sudo nano /etc/udev/rules.d/70-nvidia-uvm.rules
+```
+Ajouter :
+```bash
+KERNEL=="nvidia-uvm", MODE="0666"
+```
+
+Configuration des permissions pour tous les fichiers NVIDIA :
+```bash
+sudo nano /etc/udev/rules.d/70-nvidia-permissions.rules
+```
+Ajouter :
+```bash
+KERNEL=="nvidia*", MODE="0666"
+```
+
+
+
+Rechargement des règles udev :
+```bash
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+
+3. Configuration de nvidia-container-toolkit
+
+
+Réinstallation de nvidia-container-toolkit :
+```bash
+sudo zypper remove nvidia-container-toolkit
+sudo zypper install nvidia-container-toolkit
+```
+
+Génération du fichier de configuration CDI :
+```bash
+sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+```
+
+Redémarrage de Podman :
+```bash
+systemctl --user restart podman.socket
+```
+
+
+4. Vérification Finale
+
+
+Test de l'accès aux volumes partagés avec Podman :
+```bash
+podman run --rm -it -v /mnt/podman/shared_volumes:/test alpine ls /test
+```
+
+Test de l'accès au GPU avec Podman :
+```bash
+podman run --rm --gpus all nvidia/cuda:12.4.0-runtime-ubuntu22.04 nvidia-smi
+```
+
+
+5. Persistance après Redémarrage
+
+
+Vérification des modules NVIDIA après redémarrage :
+```bash
+lsmod | grep nvidia
+```
+
+Vérification des fichiers /dev/nvidia* après redémarrage :
+```bash
+ls -l /dev/nvidia*
+```
+
+---
+
 
 ## 2. Configuration/installation Technique
 
@@ -1328,187 +1509,6 @@ Writing manifest to image destination
 🐱 Pod pod_jupyter_lab démarré avec succès ! Accède à http://localhost:8888
 
 b. check
-## 2.4 Le cas SELINUX
-
-Pour Configurer SELinux avec Podman
-
-1. Vérifier l'état global de SELinux
-```bash
-sestatus
-```
-→ Vérifie que SELinux est en mode enforcing et que la politique targeted est active.
-
-1. Configurer les Booléens SELinux pour Podman
-Ces commandes autorisent Podman à gérer les ressources système nécessaires (cgroups, périphériques, etc.) :
-```bash
-sudo setsebool -P container_manage_cgroup true   # Permet à Podman de gérer les cgroups
-sudo setsebool -P container_use_devices true     # Permet l'accès aux périphériques (ex: GPU)
-```
--P : Rend le changement persistant après un redémarrage.
-
-
-3. Appliquer le Contexte SELinux aux Fichiers
-Pour que Podman puisse lire/écrire dans /mnt/podman :
-```bash
-# Appliquer le contexte temporairement
-sudo chcon -R -t container_file_t /mnt/podman
-
-# Rendre le changement permanent
-sudo semanage fcontext -a -t container_file_t "/mnt/podman(/.*)?"
-
-# Appliquer les règles SELinux (charge les changements)
-sudo restorecon -Rv /mnt/podman
-```
-4. Vérifications
-a. Vérifier les contextes des fichiers
-```bash
-ls -Z /mnt/podman
-```
-→ Tous les fichiers doivent afficher container_file_t (ex: drwxr-xr-x. dcrazyboy dcrazyboy system_u:object_r:container_file_t:s0).
-b. Tester l'accès avec Podman
-```bash
-podman run --rm -it -v /mnt/podman/shared_volumes:/test alpine ls /test
-```
-→ Si la commande liste le contenu de /test, SELinux est bien configuré.
-c. Déboguer en cas d'erreur
-Si la commande échoue :
-```bash
-# Voir les refus d'accès récents
-sudo ausearch -m avc -ts recent
-
-# Voir les logs SELinux dans le noyau
-sudo dmesg | grep -i selinux
-
-# Alternative (si setroubleshoot est installé)
-sudo journalctl -t setroubleshoot
-```
-→ Ces commandes t'aident à identifier quel contexte ou booléen manque.
-
-5. Bonus : Désactiver SELinux Temporairement (pour tests)
-Si tu veux vérifier si SELinux est bien le problème :
-```bash
-# Désactiver SELinux (mode permissif)
-sudo setenforce 0
-
-# Réactiver SELinux (mode enforcing)
-sudo setenforce 1
-```
-→ À utiliser uniquement pour le débogage ! Ne laisse pas SELinux en mode permissif en production.
-
-6. Eventuellement créer une policy particuliere
-Si les règles par défaut ne suffisent pas, crée une politique personnalisée :
-
-```bash
-sudo audit2allow -a -M mypodman
-sudo semodule -i mypodman.pp
-```
-7. Résumé
-|Commande|Description|
-| :----- | :----- |
-|sestatus|Vérifier l'état de SELinux.|
-|chcon -t container_file_t /chemin|Changer le contexte d'un fichier.|
-|semanage fcontext -a -t container_file_t "/chemin(/.*)?"|Rendre le changement permanent.|
-|restorecon -Rv /chemin|Appliquer les règles SELinux.|
-|setsebool -P container_manage_cgroup true|Autoriser Podman à gérer les cgroups.|
-|ls -Z /chemin|Voir les contextes SE|
-
-## 2.5 le cas nvidia
-2. Configuration des Modules NVIDIA
-
-
-Vérification des modules NVIDIA chargés :
-```bash
-lsmod | grep nvidia
-```
-
-Création des fichiers /dev/nvidia* avec les bonnes permissions :
-
-Création manuelle de /dev/nvidia-uvm :
-```bash
-sudo mknod -m 666 /dev/nvidia-uvm c 195 254
-```
-
-
-
-Configuration des règles udev pour la persistance :
-
-
-Création des fichiers de règles udev :
-```bash
-sudo nano /etc/udev/rules.d/70-nvidia-uvm.rules
-```
-Ajouter :
-```bash
-KERNEL=="nvidia-uvm", MODE="0666"
-```
-
-Configuration des permissions pour tous les fichiers NVIDIA :
-```bash
-sudo nano /etc/udev/rules.d/70-nvidia-permissions.rules
-```
-Ajouter :
-```bash
-KERNEL=="nvidia*", MODE="0666"
-```
-
-
-
-Rechargement des règles udev :
-```bash
-sudo udevadm control --reload-rules
-sudo udevadm trigger
-```
-
-
-3. Configuration de nvidia-container-toolkit
-
-
-Réinstallation de nvidia-container-toolkit :
-```bash
-sudo zypper remove nvidia-container-toolkit
-sudo zypper install nvidia-container-toolkit
-```
-
-Génération du fichier de configuration CDI :
-```bash
-sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
-```
-
-Redémarrage de Podman :
-```bash
-systemctl --user restart podman.socket
-```
-
-
-4. Vérification Finale
-
-
-Test de l'accès aux volumes partagés avec Podman :
-```bash
-podman run --rm -it -v /mnt/podman/shared_volumes:/test alpine ls /test
-```
-
-Test de l'accès au GPU avec Podman :
-```bash
-podman run --rm --gpus all nvidia/cuda:12.4.0-runtime-ubuntu22.04 nvidia-smi
-```
-
-
-5. Persistance après Redémarrage
-
-
-Vérification des modules NVIDIA après redémarrage :
-```bash
-lsmod | grep nvidia
-```
-
-Vérification des fichiers /dev/nvidia* après redémarrage :
-```bash
-ls -l /dev/nvidia*
-```
-
-
-
 
 ---
 ## 3. Automatisation et Scripts
