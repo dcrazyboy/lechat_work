@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Sourcer le script de montage (avec vérification)
-MOUNT_SCRIPT="~/scripts/mount_podman.sh"
+MOUNT_SCRIPT="$HOME/scripts/mount_podman.sh"
 if [ -f "$MOUNT_SCRIPT" ]; then
     echo "🐱 Vérification du montage des pods..."
     source "$MOUNT_SCRIPT"
@@ -21,7 +21,7 @@ if [[ ! " ${valid_pods[*]} " =~ " $1 " ]]; then
 fi
 
 # Définir les variables d'environnement
-export CONTAINERS_STORAGE_CONF=~/.config/containers/storage-${1}.conf
+export CONTAINERS_STORAGE_CONF=$HOME/.config/containers/storage-${1}.conf
 export TMPDIR=/mnt/podman/build/${1}
 
 # Afficher la configuration
