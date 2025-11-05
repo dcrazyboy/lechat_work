@@ -530,7 +530,7 @@ Pour Configurer SELinux avec Podman
 ```bash
 sestatus
 ```
-→ Vérifie que SELinux est en mode enforcing et que la politique targeted est active.
+=> Vérifie que SELinux est en mode enforcing et que la politique targeted est active.
 
 1. Configurer les Booléens SELinux pour Podman
 Ces commandes autorisent Podman à gérer les ressources système nécessaires (cgroups, périphériques, etc.) :
@@ -538,10 +538,8 @@ Ces commandes autorisent Podman à gérer les ressources système nécessaires (
 sudo setsebool -P container_manage_cgroup true   # Permet à Podman de gérer les cgroups
 sudo setsebool -P container_use_devices true     # Permet l'accès aux périphériques (ex: GPU)
 ```
--P : Rend le changement persistant après un redémarrage.
 
-
-3. Appliquer le Contexte SELinux aux Fichiers
+2. Appliquer le Contexte SELinux aux Fichiers
 Pour que Podman puisse lire/écrire dans /mnt/podman :
 ```bash
 # Appliquer le contexte temporairement
@@ -553,18 +551,23 @@ sudo semanage fcontext -a -t container_file_t "/mnt/podman(/.*)?"
 # Appliquer les règles SELinux (charge les changements)
 sudo restorecon -Rv /mnt/podman
 ```
-4. Vérifications
-a. Vérifier les contextes des fichiers
+3. Vérifications
+
+a) Vérifier les contextes des fichiers
+
 ```bash
 ls -Z /mnt/podman
 ```
-→ Tous les fichiers doivent afficher container_file_t (ex: drwxr-xr-x. dcrazyboy dcrazyboy system_u:object_r:container_file_t:s0).
-b. Tester l'accès avec Podman
+=> Tous les fichiers doivent afficher container_file_t (ex: drwxr-xr-x. dcrazyboy dcrazyboy system_u:object_r:container_file_t:s0).
+
+b) Vérifier les contextes des fichiers
 ```bash
 podman run --rm -it -v /mnt/podman/shared_volumes:/test alpine ls /test
 ```
-→ Si la commande liste le contenu de /test, SELinux est bien configuré.
-c. Déboguer en cas d'erreur
+=> Si la commande liste le contenu de /test, SELinux est bien configuré.
+
+c) Déboguer en cas d'erreur
+
 Si la commande échoue :
 ```bash
 # Voir les refus d'accès récents
@@ -576,9 +579,9 @@ sudo dmesg | grep -i selinux
 # Alternative (si setroubleshoot est installé)
 sudo journalctl -t setroubleshoot
 ```
-→ Ces commandes t'aident à identifier quel contexte ou booléen manque.
+=> Ces commandes t'aident à identifier quel contexte ou booléen manque.
 
-5. Bonus : Désactiver SELinux Temporairement (pour tests)
+4. Bonus : Désactiver SELinux Temporairement (pour tests)
 Si tu veux vérifier si SELinux est bien le problème :
 ```bash
 # Désactiver SELinux (mode permissif)
@@ -587,16 +590,17 @@ sudo setenforce 0
 # Réactiver SELinux (mode enforcing)
 sudo setenforce 1
 ```
-→ À utiliser uniquement pour le débogage ! Ne laisse pas SELinux en mode permissif en production.
+=> À utiliser uniquement pour le débogage ! Ne laisse pas SELinux en mode permissif en production.
 
-6. Eventuellement créer une policy particuliere
+5. Eventuellement créer une policy particuliere
 Si les règles par défaut ne suffisent pas, crée une politique personnalisée :
 
 ```bash
 sudo audit2allow -a -M mypodman
 sudo semodule -i mypodman.pp
 ```
-7. Résumé
+6. Résumé
+
 |Commande|Description|
 | :----- | :----- |
 |sestatus|Vérifier l'état de SELinux.|
@@ -606,7 +610,7 @@ sudo semodule -i mypodman.pp
 |setsebool -P container_manage_cgroup true|Autoriser Podman à gérer les cgroups.|
 |ls -Z /chemin|Voir les contextes SE|
 
-### 1.80 le cas nvidia
+### 1.8 le cas nvidia
 1. Configuration des Modules NVIDIA
 
 
