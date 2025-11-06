@@ -1517,9 +1517,25 @@ b. check
 ---
 
 ### 2.4 Le build
-### 2.4.1 Structuration du disque
+#### **2.4. Intégration de Stable Diffusion avec Podman et GPU**
+
+##### **2.4.1. Objectifs**
+- **Containeriser** une installation manuelle de Stable Diffusion (Automatic1111) avec Podman.
+- **Intégrer le GPU** via un conteneur CUDA dédié.
+- **Gérer les volumes partagés** pour les modèles et les sorties.
+- **Exposer l'interface web** (Gradio) avec un navigateur intégré ou externe.
+
+#### **2.4.2. Architecture Globale**
+
+##### **a. Structure des Répertoires**
 ```
 /mnt/podman/
+├── pod_sd/          # Lien symbolique vers ~/.local/share/containers/
+│   └── storage/         # Contient images, conteneurs et métadonnées Podman
+│       ├── libpod/      # Données internes (conteneurs, images, volumes)
+│       ├── overlay/      # Couches overlay
+│       └── volumes/      # Volumes nommés (optionnel)
+│
 /.../
 ├── shared_volumes/      # Dossiers partagés entre pods (images, modèles, workflows)
 │   ├── images/          # Images générées par SD/ComfyUI/autres
@@ -1546,7 +1562,199 @@ b. check
 │
 └── README.md            # Instructions pour le montage et l'utilisation
 ```
-### 2.4.2 Scripts utiles
+
+##### **b. Composants**
+| Composant | Rôle | Image/Technologie |
+|-----------|------|-------------------|
+| **Conteneur Stable Diffusion** | Exécute l'application et l'interface web | Image custom (basée sur `ubuntu:22.04`) |
+| **Conteneur CUDA** | Fournit l'accès au GPU | `nvidia/cuda:12.4.0-runtime-ubuntu22.04` |
+| **Pod Podman** | Lie les conteneurs et gère les volumes | Podman Pod |
+
+---
+
+#### **2.4.3. Variables d'Environnement**
+Ajouter les variables suivantes à `env_build.sh` :
+
+```bash
+# Chemins et ports
+export SD_WEBUI_PORT=7860
+export SD_MODELS_DIR=/models
+export SD_OUTPUT_DIR=/output
+
+# GPU et affichage
+export CUDA_VISIBLE_DEVICES=0
+export DISPLAY=:99  # Pour Xvfb (si navigateur intégré)
+```
+#### **2.4.4. Dockerfile pour Stable Diffusion**
+##### **a. Étapes Clés**
+
+1. Base : ubuntu:22.04
+2. Installer les dépendances :
+   - Python, Git, wget, et outils système.
+   - Navigateur (Firefox/Chrome) + Xvfb pour l'affichage.
+3. Configurer l'environnement :
+
+   - Définir les variables SD_MODELS_DIR, SD_OUTPUT_DIR, etc.
+4. Télécharger les modèles :
+   - Cloner Automatic1111 et télécharger les modèles dans /models.
+5. Exposer le port :
+   - EXPOSE 7860 pour l'interface web.
+##### **b. Exemple de Structure**
+```
+FROM ubuntu:22.04
+
+# Installer les dépendances
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip git wget firefox-esr xvfb \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configurer l'environnement
+ENV SD_WEBUI_PORT=7860
+ENV SD_MODELS_DIR=/models
+ENV SD_OUTPUT_DIR=/output
+
+# Copier les scripts et télécharger les modèles
+COPY env_build.sh /tmp/env_build.sh
+RUN /tmp/env_build.sh && rm /tmp/env_build.sh
+
+# Exposer le port
+EXPOSE 7860
+
+# Lancer l'application
+CMD ["python3", "launch.py", "--listen", "--port=7860"]
+```
+#### **2.4.5. Déploiement avec Podman**
+##### **a. Créer le Pod**
+```bash
+podman pod create --name sd-pod --share=ipc -p 7860:7860
+```
+##### **b. Ajouter le Conteneur CUDA**
+```bash
+podman run --pod sd-pod --gpus all -d --name cuda-container \
+  nvidia/cuda:12.4.0-runtime-ubuntu22.04 sleep infinity
+```
+##### **c. Ajouter le Conteneur Stable Diffusion***
+```bash
+podman run --pod sd-pod -d --name sd-container \
+  --volume=/mnt/podman/shared_volumes/models:/models \
+  --volume=/mnt/podman/shared_volumes/images/stable-diffusion:/output \
+  --volume=/usr/local/cuda:/usr/local/cuda\:ro \
+  mon-image-stable-diffusion
+```
+#### **2.4.6. Scripts de Gestion**
+##### **a. Script de Build**
+
+Rôle : Builder l'image Stable Diffusion et la stocker dans /mnt/podman/build/storage/.
+
+Exemple :
+```bash
+podman build -t mon-image-stable-diffusion -f /mnt/podman/build/pod_sd/Dockerfile
+podman save mon-image-stable-diffusion -o /mnt/podman/build/storage/mon-image-stable-diffusion.tar
+```
+
+##### **b. Script de Déploiement**
+
+Rôle : Charger l'image, créer le pod, et lancer les conteneurs.
+
+Exemple :
+```bash
+podman load -i /mnt/podman/build/storage/mon-image-stable-diffusion.tar
+# Créer le pod et lancer les conteneurs (voir section 2.4.5)
+```
+
+##### **c. Scripts Start/Stop**
+
+Start :
+```bash
+podman pod start sd-pod
+```
+Stop :
+```bash
+podman pod stop sd-pod
+```
+
+#### **2.4.7. Points à Valider**
+
+- Compatibilité CUDA :
+
+Vérifier que nvidia/cuda:12.4.0-runtime-ubuntu22.04 est compatible avec le driver hôte (13.0).
+
+
+- Navigateur :
+
+Tester l'affichage de l'interface web avec Xvfb ou exposer le port 7860 pour un navigateur externe.
+
+
+- Permissions :
+
+S'assurer que les volumes /models et /output ont les bonnes permissions (chmod -R 777).
+
+#### **2.4.8. Plan d'Action**
+
+1. Mettre à jour env_build.sh avec les nouvelles variables.
+2. Rédiger le Dockerfile pour Stable Diffusion.
+3. Builder l'image et la stocker dans /mnt/podman/build/storage/.
+4. Créer le pod et déployer les conteneurs.
+5. Tester :
+   - Accès à l'interface web (http://localhost:7860).
+   - Génération d'images avec le GPU.
+6. Automatiser les scripts de build, déploiement, start/stop.
+
+#### **2.4.8. IMPORTANT**
+##### **2.4.8.1 Variable externes**
+###### **a. Variables Existantes**
+
+|Variable|Rôle|Exemple de valeur|
+| :- | :- | :- |
+|CONTAINERS_STORAGE_CONF|Chemin vers la configuration de stockage Podman|/mnt/podman/.config/containers/storage-${1}.conf|
+|TMPDIR|Répertoire temporaire pour le build|/mnt/podman/build/${1}|
+|PODMAN_STORAGE|Répertoire de stockage des images Podman|/mnt/podman/build/storage|
+##### **b. Variables à Ajouter**
+|Variable|Rôle|Exemple de valeur|
+| :- | :- | :- |
+|SD_WEBUI_PORT|Port pour l'interface web de Stable Diffusion[7860[
+|SD_MODELS_DIR|Répertoire des modèles/modelsSD_OUTPUT_DIRRépertoire de sortie des images|/output|
+|DISPLAY|Affichage X11 pour le navigateur (si nécessaire)|:99|
+|CUDA_VISIBLE_DEVICES|GPU à utiliser (si plusieurs)|0|
+
+c. Intégration dans env_build.sh
+
+Exemple :
+
+##### **2.4.8.2 Structure des Répertoires et Volumes**
+| Volume | Source (hote) | Destination (container) | Description |
+| :- | :- | :- | :- |
+|Modèles|/mnt/podman/shared_volumes/models|/models|Modèles Stable Diffusion|
+|Sorties|/mnt/podman/shared_volumes/images/stable-diffusion|/output|Images générées|
+|CUDAConteneur|cuda-container|/usr/local/cuda|Bibliothèques CUDA|
+
+##### **2.4.8.3 Logique du Pod avec Navigateur Intégré**
+##### **a. Conteneurs**
+| Conteneur | Image | Role | Volume |
+| :- | :- | :- | :- |
+|sd-container|Image buildée (Stable Diffusion + navigateur)|Exécute Stable Diffusion et l'interface web|/models, /output, /usr/local/|
+|cuda|cuda-containernvidia/cuda:12.4.0-runtime-ubuntu22.04|Fournit CUDA|/usr/local/cuda|
+##### **b. Commandes Théoriques**
+
+- Créer le pod :
+```bash
+podman pod create --name sd-pod --share=ipc -p 7860:7860
+```
+- Ajouter le conteneur CUDA :
+```bash
+podman run --pod sd-pod --gpus all -d --name cuda-container nvidia/cuda:12.4.0-runtime-ubuntu22.04 sleep infinity
+```
+- Ajouter le conteneur Stable Diffusion :
+```bash
+podman run --pod sd-pod -d --name sd-container \
+  --volume=/mnt/podman/shared_volumes/models:/models \
+  --volume=/mnt/podman/shared_volumes/images/stable-diffusion:/output \
+  --volume=/usr/local/cuda:/usr/local/cuda:ro \
+  mon-image-stable-diffusion
+```
+
+
+
 
 **env_build.sh**
 
