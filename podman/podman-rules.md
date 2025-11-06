@@ -1729,12 +1729,12 @@ Exemple :
 |CUDAConteneur|cuda-container|/usr/local/cuda|Bibliothèques CUDA|
 
 ##### **2.4.8.3 Logique du Pod avec Navigateur Intégré**
-##### **a. Conteneurs**
+###### **a. Conteneurs**
 | Conteneur | Image | Role | Volume |
 | :- | :- | :- | :- |
 |sd-container|Image buildée (Stable Diffusion + navigateur)|Exécute Stable Diffusion et l'interface web|/models, /output, /usr/local/|
 |cuda|cuda-containernvidia/cuda:12.4.0-runtime-ubuntu22.04|Fournit CUDA|/usr/local/cuda|
-##### **b. Commandes Théoriques**
+###### **b. Commandes Théoriques**
 
 - Créer le pod :
 ```bash
@@ -1752,11 +1752,8 @@ podman run --pod sd-pod -d --name sd-container \
   --volume=/usr/local/cuda:/usr/local/cuda:ro \
   mon-image-stable-diffusion
 ```
-
-
-
-
-**env_build.sh**
+##### **2.4.8 Evolution des scripts**
+###### **a. env_build.sh**
 
 Ce script mest en place els acces et les variables pour l'environnement de build
 ```bash
@@ -1776,11 +1773,38 @@ fi
 valid_pods=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab")
 
 # Vérifier si l'argument est valide
-if [[ ! " ${valid_pods[*]} " =~ " $1 " ]]; then
-    echo "Pod inconnu. Pods valides :"
-    printf '%s\n' "${valid_pods[@]}"
-    exit 1
-fi
+for element in "${pod_list[@]}"; do
+  # ajoute les variables spécifique si besoin 
+  if [[ ! " ${element}} " == "${1}" ]]; then
+    case $element in
+      pod_sd)
+        export SD_WEBUI_PORT=7860
+        export SD_MODELS_DIR=/mnt/podman/shared_volumes/models
+        export SD_OUTPUT_DIR=/mnt/podman/shared_volumes/images/stable-diffusion
+        export DISPLAY=:99
+        export CUDA_VISIBLE_DEVICES=0
+        echo "Configuration spécifique appliquée :"
+        echo "  - SD_WEBUI_PORT = $SD_WEBUI_PORT"
+        echo "  - SD_MODELS_DIR = $SD_MODELS_DIR"
+        echo "  - SD_OUTPUT_DIR = $SD_OUTPUT_DIR"
+        echo "  - DISPLAY = $DISPLAY"
+        echo "  - CUDA_VISIBLE_DEVICES = $CUDA_VISIBLE_DEVICES"
+        ;;
+      pod_comfyui)
+        ;;
+      pod_cdrage)
+        ;; 
+      pod_kohya_ss)
+        ;;
+      pod_jupyter_lab)
+        ;;
+      *)
+        echo "Pod inconnu."
+        exit 1
+        ;;
+    esac
+  fi
+done
 
 # Définir les variables d'environnement
 export CONTAINERS_STORAGE_CONF=$HOME/.config/containers/storage-${1}.conf
@@ -1788,10 +1812,11 @@ export TMPDIR=/mnt/podman/build/${1}
 export PODMAN_STORAGE=/mnt/podman/build/storage
 
 # Afficher la configuration
-echo "Configuration appliquée :"
+echo "Configuration générale appliquée :"
 echo "  - CONTAINERS_STORAGE_CONF = $CONTAINERS_STORAGE_CONF"
 echo "  - TMPDIR = $TMPDIR"
 echo "  - PODMAN_STORAGE = $PODMAN_STORAGE"
+
 ```
 
 ### Prerequis
