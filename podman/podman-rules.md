@@ -1702,7 +1702,6 @@ S'assurer que les volumes /models et /output ont les bonnes permissions (chmod -
    - Génération d'images avec le GPU.
 6. Automatiser les scripts de build, déploiement, start/stop.
 
-#### **2.4.8. IMPORTANT**
 ##### **2.4.8.1 Variable externes**
 ###### **a. Variables Existantes**
 
