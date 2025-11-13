@@ -1517,9 +1517,11 @@ b. check
 ---
 
 ### 2.4 Le build
-#### **2.4. Intégration de Stable Diffusion avec Podman et GPU**
+Pour étudier et apprendre le cas de test est le suivaant : 
 
-##### **2.4.1. Objectifs**
+**Intégration de Stable Diffusion avec Podman et GPU**
+
+#### **2.4.1. Objectifs**
 - **Containeriser** une installation manuelle de Stable Diffusion (Automatic1111) avec Podman.
 - **Intégrer le GPU** via un conteneur CUDA dédié.
 - **Gérer les volumes partagés** pour les modèles et les sorties.
@@ -1709,11 +1711,12 @@ S'assurer que les volumes /models et /output ont les bonnes permissions (chmod -
 |CONTAINERS_STORAGE_CONF|Chemin vers la configuration de stockage Podman|/mnt/podman/.config/containers/storage-${1}.conf|
 |TMPDIR|Répertoire temporaire pour le build|/mnt/podman/build/${1}|
 |PODMAN_STORAGE|Répertoire de stockage des images Podman|/mnt/podman/build/storage|
-##### **b. Variables à Ajouter**
+###### **b. Variables à Ajouter**
 |Variable|Rôle|Exemple de valeur|
 | :- | :- | :- |
-|SD_WEBUI_PORT|Port pour l'interface web de Stable Diffusion[7860[
-|SD_MODELS_DIR|Répertoire des modèles/modelsSD_OUTPUT_DIRRépertoire de sortie des images|/output|
+|SD_WEBUI_PORT|Port pour l'interface web de Stable Diffusion|7860
+|SD_MODELS_DIR|Répertoire des modèles/models|/models
+|SD_OUTPUT_DIR|Répertoire de sortie des images|/output|
 |DISPLAY|Affichage X11 pour le navigateur (si nécessaire)|:99|
 |CUDA_VISIBLE_DEVICES|GPU à utiliser (si plusieurs)|0|
 
@@ -2341,6 +2344,10 @@ Par quel point veux-tu commencer ? Par exemple :
   - [✅] Vademecum podman
     - [✅] Gestion courrantes
     - [✅] resolution problème
+  - [ ] Le build
+    - [ ] Mise en place environnement
+    - [ ] Construction
+    - [ ] Test
 - [ ]Automatisation des pod prevu
   - [ ] Stable diffusion
     - [ ] scripts sopt/start mode web /bash

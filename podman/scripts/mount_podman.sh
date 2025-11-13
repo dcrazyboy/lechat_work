@@ -57,7 +57,7 @@ EOF
     done
 
     # check podman est actif
-    if ! $(systemctl --user is-active podman.socket); then
+    if [[ "$(systemctl --user is-active podman.socket)" != "active" ]]; then
         systemctl --user start podman.socket
     fi
     echo "🐱 Nombre de pods accessibles : $nb_ln | En erreur : $nb_ln_err"
