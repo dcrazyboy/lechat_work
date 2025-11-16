@@ -1754,7 +1754,7 @@ podman run --pod sd-pod -d --name sd-container \
   --volume=/usr/local/cuda:/usr/local/cuda:ro \
   mon-image-stable-diffusion
 ```
-##### **2.4.8 Evolution des scripts**
+##### **2.4.8.4 Evolution des scripts**
 ###### **a. env_build.sh**
 
 Ce script mest en place els acces et les variables pour l'environnement de build
@@ -1772,7 +1772,7 @@ else
 fi
 
 # Liste des pods valides
-valid_pods=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab")
+pod_list=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab")
 
 # Vérifier si l'argument est valide
 for element in "${pod_list[@]}"; do
@@ -1818,6 +1818,98 @@ echo "Configuration générale appliquée :"
 echo "  - CONTAINERS_STORAGE_CONF = $CONTAINERS_STORAGE_CONF"
 echo "  - TMPDIR = $TMPDIR"
 echo "  - PODMAN_STORAGE = $PODMAN_STORAGE"
+```
+###### **b. dockerfile**
+Le dockerfile est construit a partir d'un installation faite standalone hors podman 
+la source :
+```
+sudo zypper install git wget curl python311 python311-pip python311-devel gcc gcc-c++ make cmake nodejs npm libffi-devel libopenssl-devel readline-devel sqlite3-devel xz-devel libbz2-devel tk-devel libexpat-devel jitterentropy-devel
+```
+### Nettoyage de l'environnement (si besoin)
+```bash
+deactivate
+rm -rf venv
+```
+### récuperation de stable difusion
+```bash
+cd /data
+sudo mkdir projets
+sudo chown dcrazyboy:root /data/projets/
+cd projets
+sudo git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git /data/projets/stable-diffusion-webui
+cd stable-diffusion-webui
+```
+### Création de l'environnement virtuel
+```bash
+python3.11 -m venv venv
+source venv/bin/activate
+```
+### Installation de PyTorch xformers et dépendances
+```bash
+# mettre a niveau pip et wheel
+pip install --upgrade pip wheel
+
+# Installe PyTorch, torchvision, et torchaudio en version 2.3.0 pour CUDA 12.1
+pip install torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Installe xformers depuis la source pour éviter les conflits de version
+pip install xformers==0.0.28.post3 --no-cache-dir
+
+# Installe les dépendances restantes depuis le fichier requirements.txt
+pip install -r requirements.txt
+```
+
+Le dockerfile resultant 
+```
+FROM docker.io/nvidia/cuda:12.4.0-runtime-ubuntu22.04
+
+# Installer les dépendances système (Ubuntu)
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip python3-venv git wget curl \
+    firefox xvfb libgl1-mesa-glx libglib2.0-0 \
+    meson ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+# Créer un lien symbolique pour python
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+# Définir les variables d'environnement
+ENV SD_WEBUI_PORT=7860 \
+    SD_MODELS_DIR=/models \
+    SD_OUTPUT_DIR=/output \
+    DISPLAY=:99 \
+    DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1
+
+# Créer les répertoires pour les volumes
+RUN mkdir -p /models /output
+
+# Installer PyTorch et Torchvision en premier
+WORKDIR /stable-diffusion-webui
+RUN pip install torch==2.1.2+cu121 torchvision==0.16.2+cu121 --index-url https://download.pytorch.org/whl/cu121
+
+# Installer xformers depuis une source fiable
+RUN pip install -U -v --index-url https://download.pytorch.org/whl/cu121 --no-cache-dir xformers
+
+# Installer les autres dépendances
+RUN pip install svglib && \
+    pip install -r https://raw.githubusercontent.com/Automatic1111/stable-diffusion-webui/master/requirements.txt
+
+# Cloner Stable Diffusion (Automatic1111)
+RUN git clone https://github.com/Automatic1111/stable-diffusion-webui.git /stable-diffusion-webui \
+    && cd /stable-diffusion-webui \
+    && git checkout master
+
+# Installer les extensions (optionnel)
+RUN cd /stable-diffusion-webui/extensions \
+    && git clone https://github.com/Mikubill/sd-webui-controlnet.git \
+    && git clone https://github.com/continue-revolution/sd-webui-segment-anything.git
+
+# Exposer le port
+EXPOSE 7860
+
+# Lancer l'application avec la syntaxe shell
+CMD ["/bin/bash", "-c", "cd /stable-diffusion-webui && python3 launch.py --listen --port=${SD_WEBUI_PORT} --xformers --enable-insecure-extension-access"]
 
 ```
 

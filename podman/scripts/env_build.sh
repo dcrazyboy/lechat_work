@@ -11,7 +11,7 @@ else
 fi
 
 # Liste des pods valides
-valid_pods=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab")
+pod_list=("pod_sd" "pod_comfyui" "pod_cdrage" "pod_kohya_ss" "pod_jupyter_lab")
 
 # Vérifier si l'argument est valide
 for element in "${pod_list[@]}"; do
