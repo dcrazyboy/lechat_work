@@ -1,0 +1,42 @@
+{
+  // Apparence
+  "workbench.colorTheme": "Default Dark+",
+  "workbench.iconTheme": "material-icon-theme",
+  "editor.fontSize": 14,
+  "editor.fontFamily": "'Fira Code', 'Courier New', monospace",
+  "editor.fontLigatures": true,
+
+  // Comportement
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": true
+  },
+  "files.autoSave": "afterDelay",
+
+  // Git
+  "git.enableSmartCommit": true,
+  "git.confirmSync": false,
+  "git.ignoreMissingGitWarning": true,
+
+  // Terminal
+  "terminal.integrated.shell.linux": "/bin/bash",
+  "terminal.integrated.fontFamily": "'Fira Code'",
+
+  // Extensions
+  "extensions.autoUpdate": true,
+
+  // Dossiers exclus
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true,
+    "**/*.pyc": true
+  },
+
+  // Markdown
+  "markdown.preview.fontSize": 14,
+  "markdown.preview.fontFamily": "'Fira Code'",
+
+  // Raccourcis personnalisés (à ajouter dans keybindings.json)
+  "workbench.startupEditor": "newUntitledFile"
+}

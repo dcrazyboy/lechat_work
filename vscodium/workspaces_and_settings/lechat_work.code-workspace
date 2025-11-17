@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "git.openRepositoryInParentFolders": "never",
+    "gitlens.codeLens.enabled": true,
+    "editor.wordWrap": "on"
+  },
+  "extensions": {
+    "recommendations": [
+      "timonwong.shellcheck",
+      "eamodio.gitlens",
+      "fabiospampinato.vscode-workspace-switcher",
+      "yzane.markdown-all-in-one"
+    ]
+  }
+}
