@@ -27,7 +27,7 @@ Voici une liste d’emojis utiles pour tes documents Markdown.
 - :sparkles: `✨`
 
 ### 🚦 Statuts
-- :white_check_mark: `✅`
+- :white_check_mark: `✅` 
 - :x: `❌`
 - :warning: `⚠️`
 

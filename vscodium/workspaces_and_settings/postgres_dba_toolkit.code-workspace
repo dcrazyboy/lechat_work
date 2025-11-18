@@ -15,9 +15,10 @@
     "recommendations": [
       "timonwong.shellcheck",
       "eamodio.gitlens",
-      "fabiospampinato.vscode-workspace-switcher",
+      "alefragnani.project-manager",
+      "bierner.emojisense",
       "yzane.markdown-all-in-one",
-      "ckolkman.vscode-postgres"  // Spécifique à PostgreSQL
+      "ckolkman.vscode-postgres" // Spécifique à PostgreSQL
     ]
   }
 }
