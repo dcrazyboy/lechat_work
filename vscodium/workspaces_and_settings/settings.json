@@ -1,62 +1,61 @@
 {
-    // Apparence
-    "workbench.colorTheme": "Default Dark+",
-    "workbench.iconTheme": "material-icon-theme",
-    // Raccourcis personnalisés (à ajouter dans keybindings.json)
-    "workbench.startupEditor": "newUntitledFile",
-    //editeur
-    "editor.fontSize": 14,
-    "editor.fontFamily": "'Fira Code', 'Courier New', monospace",
-    "editor.fontLigatures": true,
-    // Comportement
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-        "source.fixAll": "explicit"
-    },
-    // Dossiers exclus
-    "files.exclude": {
-        "**/.git": true,
-        "**/node_modules": true,
-        "**/__pycache__": true,
-        "**/*.pyc": true
-    },
-    // Terminal
-    "terminal.integrated.shell.linux": "/bin/bash",
-    "terminal.integrated.fontFamily": "'Fira Code'",
-    // Extensions
-    "extensions.autoUpdate": true,
-    // Git
-    "git.enableSmartCommit": true,
-    "git.confirmSync": false,
-    "git.ignoreMissingGitWarning": true,
-    // GitLens
-    "gitlens.codeLens.enabled": true,
-    "gitlens.currentLine.enabled": true,
-    "gitlens.hovers.currentLine.over": "line",
-    "gitlens.hovers.enabled": true,
-    // Markdown
-    "markdown.preview.fontSize": 14,
-    "markdown.preview.fontFamily": "'Fira Code'",
-    // Activation des fonctionnalités de base
-    "markdown.extension.toc.levels": "1..6",
-    "markdown.extension.toc.orderedList": true,
-    // Formatage automatique
-    "markdown.extension.orderedList.marker": "one",
-    // Prévisualisation
-    "markdown.extension.preview.autoShowPreviewToSide": true,
-    // Autres paramètres utiles
-    "markdown.extension.completion.enabled": true,
-    // Project Manager
-    "projectManager.sortList": "Name",
-    "projectManager.git.baseFolders": [
-        "/run/media/dcrazyboy/My Passport/prof/vscodium/"
-    ],
-    // ShellCheck
-    "shellcheck.executablePath": "/usr/bin/shellcheck",
-    "shellcheck.run": "onSave",
-    "shellcheck.ignorePatterns": {
-        "**/node_modules/**": true,
-        "**/vendor/**": true
-    },
-    "shellcheck.disableVersionCheck": true
+  // Apparence
+  "workbench.colorTheme": "Default Dark+",
+  "workbench.iconTheme": "material-icon-theme",
+  // Raccourcis personnalisés (à ajouter dans keybindings.json)
+  "workbench.startupEditor": "newUntitledFile",
+  //editeur
+  "editor.fontSize": 14,
+  "editor.fontFamily": "'Fira Code', 'Courier New', monospace",
+  "editor.fontLigatures": true,
+  "editor.tabSize": 2,
+  // Comportement
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+  // Dossiers exclus
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true,
+    "**/*.pyc": true
+  },
+  // Terminal
+  "terminal.integrated.shell.linux": "/bin/bash",
+  "terminal.integrated.fontFamily": "'Fira Code'",
+  // Extensions
+  "extensions.autoUpdate": true,
+  // Git
+  "git.enableSmartCommit": true,
+  "git.confirmSync": false,
+  "git.ignoreMissingGitWarning": true,
+  // GitLens
+  "gitlens.codeLens.enabled": true,
+  "gitlens.currentLine.enabled": true,
+  "gitlens.hovers.currentLine.over": "line",
+  "gitlens.hovers.enabled": true,
+  // Markdown
+  "markdown.preview.fontSize": 14,
+  "markdown.preview.fontFamily": "'Fira Code'",
+  // Activation des fonctionnalités de base
+  "markdown.extension.toc.levels": "1..6",
+  "markdown.extension.toc.orderedList": true,
+  // Formatage automatique
+  "markdown.extension.orderedList.marker": "one",
+  // Prévisualisation
+  "markdown.extension.preview.autoShowPreviewToSide": true,
+  // Autres paramètres utiles
+  "markdown.extension.completion.enabled": true,
+  // Project Manager
+  "projectManager.sortList": "Name",
+  "projectManager.git.baseFolders": [
+    "/run/media/dcrazyboy/My Passport/prof/vscodium/"
+  ],
+  // ShellCheck
+  "shellcheck.executablePath": "/usr/bin/shellcheck",
+  "shellcheck.ignorePatterns": {
+    "**/node_modules/**": true,
+    "**/vendor/**": true
+  }
 }

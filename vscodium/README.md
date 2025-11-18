@@ -24,34 +24,28 @@ prof
 
 ## 🛠 Extensions Communes
 Toutes les configurations incluent ces extensions de base :
-- **ShellCheck** : Vérification des scripts shell.
+- **:emojisense:** : Pour ajouter des icones sympas dans les markdown (au moin ici)
 - **GitLens** : Superpouvoirs Git (historique, blame, etc.).
-- **Workspace Switcher** : Basculer entre les workspaces en 1 clic.
+- **macros** : permet de rajoute des macro a Codium
 - **Markdown All in One** : Édition avancée de Markdown.
+- **Project MAnager** : Basculer entre les workspaces en 1 clic.
+- **ShellCheck** : Vérification des scripts shell.
 
 ---
 
-## 🚀 Comment Utiliser ?
-1. **Ouvrir le contexte global** :
-   - `File > Open Folder` → Sélectionne `<mon_disk>/prof/vscodium`.
-   - Idéal pour **rechercher/copier** des fichiers entre projets.
+## 🚀 Comment bascule d'un projet à un autre ?
 
-2. **Travailler dans un workspace isolé** :
-   - `Ctrl+K O` → Sélectionne un fichier `.code-workspace` (ex: `lechat_work.code-workspace`).
-   - GitLens **détecte automatiquement** le dépôt Git du projet.
+![alt text](docs/use_project_manager.png)
 
-3. **Revenir au contexte global** :
-   - Ferme le workspace (`File > Close Workspace`) et rouvre le dossier racine.
+1. Dans la side bar, choisit Project Manager
+2. Dans les favoris choisir le projet global (vscodium) ou le sous-projet que l'on veux utilliser 
 
 ---
 
 ## 🎯 Raccourcis Clavier Utiles
-| Action                          | Raccourci          |
-| :--- | :--- |
-| Ouvrir un workspace             | `Ctrl+K O`         |
-| Basculer vers le contexte global | `Ctrl+Alt+G`       |
-| Basculer vers `dcrazyboy`       | `Ctrl+Alt+1`       |
-| Basculer vers `lechat_work`     | `Ctrl+Alt+2`       |
+| Action                           | Raccourci    |
+| :------------------------------- | :----------- |
+
 
 *(Les raccourcis sont configurés dans `keybindings.json`.)*
 

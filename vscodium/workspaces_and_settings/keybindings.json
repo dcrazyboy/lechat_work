@@ -1,17 +1,3 @@
 [
-    {
-        "key": "ctrl+alt+1",
-        "command": "projectManager.openProject",
-        "args": "dcrazyboy"
-    },
-    {
-        "key": "ctrl+alt+2",
-        "command": "projectManager.openProject",
-        "args": "lechat_work"
-    },
-    {
-        "key": "ctrl+alt+3",
-        "command": "projectManager.openProject",
-        "args": "postgres_dba_toolkit"
-    }
+
 ]

@@ -1,0 +1,30 @@
+[
+	{
+		"name": "vscodium / lechat_work",
+		"rootPath": "/run/media/dcrazyboy/My Passport/prof/vscodium/lechat_work",
+		"paths": [],
+		"tags": [],
+		"enabled": true
+	},
+	{
+		"name": "vscodium / postgres_dba_toolkit",
+		"rootPath": "/run/media/dcrazyboy/My Passport/prof/vscodium/postgres_dba_toolkit",
+		"paths": [],
+		"tags": [],
+		"enabled": true
+	},
+	{
+		"name": "vscodium / dcrazyboy",
+		"rootPath": "/run/media/dcrazyboy/My Passport/prof/vscodium/dcrazyboy",
+		"paths": [],
+		"tags": [],
+		"enabled": true
+	},
+	{
+		"name": "vscodium",
+		"rootPath": "/run/media/dcrazyboy/My Passport/prof/vscodium",
+		"paths": [],
+		"tags": [],
+		"enabled": true
+	}
+]
